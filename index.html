@@ -8,7 +8,7 @@
     <style>
         :root {
             --bg: #0b0f13;
-            --panel: #0f1518; DharmaForge
+            --panel: #0f1518;
             --panel-2: #0c1113;
             --muted: #9aa6b0;
             --text: #e6eef6;
@@ -767,8 +767,8 @@
 
         const FIELD_KIND = {
             PRIMITIVE: 'primitive',
-            CARD_REF: 'instantiation',
-            LIST_OF_CARDS: 'instantiationList',
+            CARD_REF: 'instantiator',
+            LIST_OF_CARDS: 'instantiatorList',
             ENTITY_REF: 'instanceReference',
             LIST_ENTITY_REF: 'instanceReferenceList'  // ← ADD THIS LINE
         };
@@ -1651,8 +1651,8 @@
          * Clean all references to deleted instance IDs.
          * Scans all instances and removes deleted IDs from:
          * - instanceReference fields (HARDENING: reference removal only, never cascade delete)
-         * - reference-mode instantiation fields
-         * - reference-mode instantiationList fields
+         * - reference-mode instantiator fields
+         * - reference-mode instantiatorList fields
          */
         function cleanupReferences(deletedIds) {
             console.log('🧹 cleanupReferences called with', deletedIds.size, 'deleted IDs:', Array.from(deletedIds));
@@ -1670,22 +1670,22 @@
                     // ENTITY_REF and LIST_ENTITY_REF: Do NOT clean broken references
                     // Broken references are valid states - users see ⚠️ broken chips
 
-                    // Clean reference-mode instantiation
+                    // Clean reference-mode instantiator
                     if (isReferenceField(field) && field.fieldKind === FIELD_KIND.CARD_REF) {
                         if (val && deletedIds.has(val)) {
                             inst.fieldValues[field.id] = null;
-                            console.log(`  ✂️ Cleaned instantiation field "${field.name}" in instance ${instId.slice(0, 8)}`);
+                            console.log(`  ✂️ Cleaned instantiator field "${field.name}" in instance ${instId.slice(0, 8)}`);
                         }
                     }
 
-                    // Clean reference-mode instantiationList
+                    // Clean reference-mode instantiatorList
                     if (isReferenceField(field) && field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
                         if (Array.isArray(val)) {
                             const before = val.length;
                             inst.fieldValues[field.id] = val.filter(id => !deletedIds.has(id));
                             const after = inst.fieldValues[field.id].length;
                             if (before !== after) {
-                                console.log(`  ✂️ Cleaned instantiationList field "${field.name}" in instance ${instId.slice(0, 8)}: ${before} → ${after} refs`);
+                                console.log(`  ✂️ Cleaned instantiatorList field "${field.name}" in instance ${instId.slice(0, 8)}: ${before} → ${after} refs`);
                             }
                         }
                     }
@@ -1782,7 +1782,7 @@
             // Step 2: Add to new parent
             if (newField.fieldKind === FIELD_KIND.CARD_REF) {
                 if (newParent.fieldValues[newFieldId]) {
-                    return { success: false, error: 'Target instantiation field already occupied' };
+                    return { success: false, error: 'Target instantiator field already occupied' };
                 }
                 newParent.fieldValues[newFieldId] = inst.id;
             } else if (newField.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
@@ -2046,7 +2046,7 @@
                         if (field.fieldKind === FIELD_KIND.CARD_REF) {
                             if (val !== null && !isValidUUID(val)) {
                                 errors.push(
-                                    `Instance ${instId}, field ${field.name}: reference instantiation must be UUID or null`
+                                    `Instance ${instId}, field ${field.name}: reference instantiator must be UUID or null`
                                 );
                             }
                             if (val && !findInstanceById(val)) {
@@ -2057,13 +2057,13 @@
                         } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
                             if (!Array.isArray(val)) {
                                 errors.push(
-                                    `Instance ${instId}, field ${field.name}: reference instantiationList must be array`
+                                    `Instance ${instId}, field ${field.name}: reference instantiatorList must be array`
                                 );
                             } else {
                                 for (const refId of val) {
                                     if (!isValidUUID(refId)) {
                                         errors.push(
-                                            `Instance ${instId}, field ${field.name}: invalid UUID in instantiationList: ${refId}`
+                                            `Instance ${instId}, field ${field.name}: invalid UUID in instantiatorList: ${refId}`
                                         );
                                     }
                                     if (!findInstanceById(refId)) {
@@ -2081,18 +2081,18 @@
                         if (field.fieldKind === FIELD_KIND.CARD_REF) {
                             if (val !== null && !isValidUUID(val)) {
                                 errors.push(
-                                    `Instance ${instId}, field ${field.name}: contain instantiation must be valid UUID or null`
+                                    `Instance ${instId}, field ${field.name}: contain instantiator must be valid UUID or null`
                                 );
                             }
                             if (val && !findInstanceById(val)) {
                                 warnings.push(
-                                    `Instance ${instId}, field ${field.name}: contain instantiation references missing instance ${val}`
+                                    `Instance ${instId}, field ${field.name}: contain instantiator references missing instance ${val}`
                                 );
                             }
                         } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
                             if (!Array.isArray(val)) {
                                 errors.push(
-                                    `Instance ${instId}, field ${field.name}: contain instantiationList must be array`
+                                    `Instance ${instId}, field ${field.name}: contain instantiatorList must be array`
                                 );
                             } else {
                                 for (let i = 0; i < val.length; i++) {
@@ -3512,7 +3512,7 @@
                     };
                     fd.appendChild(psel);
                 } else if (f.fieldKind !== FIELD_KIND.ENTITY_REF && f.fieldKind !== FIELD_KIND.LIST_ENTITY_REF) {  // ← MODIFIED
-                    // instantiation/instantiationList: type filter + mode
+                    // instantiator/instantiatorList: type filter + mode
                     const filterSel = document.createElement('select');
                     const types = Array.from(new Set(state.blueprints.map(tt => tt.type || 'Generic'))).filter(t => t !== 'Root');
                     for (const ty of types) {
