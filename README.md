@@ -1,26 +1,16 @@
-\# In short:
-
+# In short:
 It's a fully structured, validated environment for modeling knowledge.
-
 Hierarchy, references, and integrity are rigorously enforced.
-
 Every piece of data has a precise location and ownership.
-
 A structured knowledge modeling environment with rigorous validation and referential integrity.
 
 DharmaForge enforces hierarchy, ownership, and data contracts to ensure every piece of information has a precise location and well-defined relationships.
 
-
-
-\# Core Concepts
-
+# Core Concepts
 DharmaForge is built around three key elements:
-
-\# Blueprints:
-
+# Blueprints:
 Blueprints define the structure of data. They are the architectural plans from which instances are created.
-
-\## Each blueprint contains:
+## Each blueprint contains:
 
 • id (UUID) – unique identifier
 
@@ -40,15 +30,14 @@ Static blueprints define shapes and defaults but do not appear as runtime instan
 
 
 
-\# Fields:
+# Fields:
 
 Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-\## Field Kinds
-
-\### Primitive
+## Field Kinds
+### Primitive
 
 • Scalar values (text, number)
 
@@ -56,7 +45,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-\### Instantiation (contain mode)
+### Instantiation (contain mode)
 
 • Ownership link to a single child instance
 
@@ -66,7 +55,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-\### Instantiation (reference mode)
+### Instantiation (reference mode)
 
 • Reference link to a single existing instance
 
@@ -76,7 +65,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-\### InstantiationList (contain mode)
+### InstantiationList (contain mode)
 
 • Ownership link to multiple child instances
 
@@ -86,7 +75,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-\### InstantiationList (reference mode)
+### InstantiationList (reference mode)
 
 • Reference link to multiple existing instances
 
@@ -96,7 +85,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-\### InstanceReference
+### InstanceReference
 
 • Non-owning references to instance(s)
 
@@ -108,7 +97,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-\### InstanceReferenceList
+### InstanceReferenceList
 
 • Ordered, non-owning list of references
 
@@ -120,8 +109,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-\## Field Metadata
-
+## Field Metadata
 Fields may include:
 
 • primitiveType → "TEXT" or "NUMBER" (for primitive fields)
@@ -132,13 +120,11 @@ Fields may include:
 
 • isFieldStatic → marks field as using static default
 
-
-
-\# Instances
+# Instances
 
 Instances are concrete data objects created from blueprints.
 
-\## Each instance contains:
+## Each instance contains:
 
 • id (UUID) – unique identifier
 
@@ -152,9 +138,9 @@ Instances are concrete data objects created from blueprints.
 
 
 
-\# Ownership and Reference Semantics
+# Ownership and Reference Semantics
 
-\### Ownership Rules:
+### Ownership Rules:
 
 • Every instance except root has exactly one parent.
 
@@ -166,7 +152,7 @@ Instances are concrete data objects created from blueprints.
 
 
 
-\# Reference Rules
+# Reference Rules
 
 • Instantiation (reference) and InstantiationList (reference) create non-owning links
 
@@ -176,13 +162,9 @@ Instances are concrete data objects created from blueprints.
 
 • References do NOT appear as nodes in the Instance Tree hierarchy
 
-• Broken references are valid but flagged in validation
+• Broken references are valid but flagged in validation.
 
-
-
-
-
-\# Hard Contract Rules
+# Hard Contract Rules
 
 DharmaForge enforces strict invariants:
 
@@ -200,9 +182,7 @@ DharmaForge enforces strict invariants:
 
 • Validation reveals, never fixes – invalid states remain visible
 
-
-
-\# State Structure
+# State Structure
 
 javascriptstate = {
 
@@ -216,11 +196,8 @@ javascriptstate = {
 
 The root instance is the single entry point to the entire data graph.
 
-
-
-\# Three-Pane Interface
-
-\## Instance Tree (Left Panel)
+# Three-Pane Interface.
+## Instance Tree (Left Panel)
 
 • Displays the full containment hierarchy starting from root
 
@@ -234,13 +211,11 @@ The root instance is the single entry point to the entire data graph.
 
 • Verbose mode shows field values inline
 
-
-
-\## Instance/Blueprint Editor (Center Panel)
+## Instance/Blueprint Editor (Center Panel)
 
 Main workspace for editing the selected item.
 
-\### When an instance is selected:
+### When an instance is selected:
 
 • Edit primitive field values (text, number)
 
@@ -254,9 +229,7 @@ Main workspace for editing the selected item.
 
 • Navigate via clickable reference chips
 
-
-
-\### When a blueprint is selected:
+### When a blueprint is selected:
 
 • Edit blueprint name and type
 
@@ -268,9 +241,7 @@ Main workspace for editing the selected item.
 
 • View instance usage statistics
 
-
-
-\# Blueprint Library (Right Panel)
+# Blueprint Library (Right Panel)
 
 • Searchable list of all blueprints
 
@@ -282,13 +253,7 @@ Main workspace for editing the selected item.
 
 • Visual indicators for static blueprints
 
-
-
-
-
-\## Interaction Flow
-
-
+## Interaction Flow
 
 • Select an instance in the Instance Tree (left)
 
@@ -304,13 +269,7 @@ Main workspace for editing the selected item.
 
 • Validation runs in the background, surfaces errors without fixing
 
-
-
-
-
-\# Key Behaviors
-
-
+# Key Behaviors
 
 Containment enforces single ownership – multi-parent selection blocked
 
@@ -328,11 +287,9 @@ Smart instance labeling – uses primitive values → container names → IDs
 
 Click navigation – reference chips are clickable to jump to targets
 
+# Field Kind Decision Guide:
 
-
-\# Field Kind Decision Guide:
-
-\### Use Instantiation (contain) when:
+### Use Instantiation (contain) when:
 
 • Parent owns and manages child's lifecycle
 
@@ -340,7 +297,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 • Example: Document → ContentBlocks, Form → FormFields
 
-\### Use Instantiation (reference) when:
+### Use Instantiation (reference) when:
 
 • Parent needs a single reference to an existing instance
 
@@ -350,7 +307,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 
 
-\### Use InstantiationList (contain) when:
+### Use InstantiationList (contain) when:
 
 • Parent owns and manages multiple children
 
@@ -360,7 +317,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 
 
-\### Use InstantiationList (reference) when:
+### Use InstantiationList (reference) when:
 
 • Parent needs multiple references to existing instances
 
@@ -370,7 +327,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 
 
-\### Use InstanceReference when:
+### Use InstanceReference when:
 
 • Representing semantic relationships (not ownership)
 
@@ -382,7 +339,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 
 
-\### Use InstanceReferenceList when:
+### Use InstanceReferenceList when:
 
 • Representing ordered semantic relationships
 
@@ -394,7 +351,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 
 
-\# Example Use Case
+# Example Use Case
 
 Modeling a Mathematics Knowledge Base:
 
@@ -410,7 +367,7 @@ Modeling a Mathematics Knowledge Base:
 
 
 
-\### Instances:
+### Instances:
 
 • Root: "Math Knowledge Base"
 
@@ -426,7 +383,7 @@ Example: "Quadratic Formula" (contained)
 
 
 
-\### References:
+### References:
 
 • "Algebra" → InstanceReference to "Number Theory" (semantic link)
 
@@ -434,7 +391,7 @@ Example: "Quadratic Formula" (contained)
 
 
 
-\### Result:
+### Result:
 
 • Containment ensures "Algebra" belongs to "Math Knowledge Base"
 
@@ -447,8 +404,7 @@ Example: "Quadratic Formula" (contained)
 
 
 
-
-\# Code Constants (Legacy Naming)
+# Code Constants (Legacy Naming)
 
 Internal code uses legacy constant names for backward compatibility:
 
@@ -490,11 +446,11 @@ UI and documentation use conceptual names (Instantiation, InstanceReference, etc
 
 
 
-\# Validation (Important!)
+# Validation (Important!)
 
 Validation runs automatically and surfaces errors without mutating state.
 
-\### Validates:
+### Validates:
 
 • All UUIDs are valid format
 
@@ -512,7 +468,7 @@ Validation runs automatically and surfaces errors without mutating state.
 
 
 
-\### Does NOT:
+### Does NOT:
 
 • Auto-delete broken references
 
@@ -524,11 +480,11 @@ Validation runs automatically and surfaces errors without mutating state.
 
 
 
-\# Static Defaults
+# Static Defaults
 
 Blueprints can define static default values for primitive fields.
 
-\### Behavior:
+### Behavior:
 
 • New instances inherit static defaults automatically
 
@@ -542,7 +498,7 @@ Blueprints can define static default values for primitive fields.
 
 
 
-\### Example:
+### Example:
 
 javascript{
 
@@ -566,7 +522,7 @@ javascript{
 
 
 
-Philosophy
+# Philosophy
 
 DharmaForge prioritizes correctness over comfort. The system:
 
@@ -586,7 +542,7 @@ The goal is a trustworthy structured environment where users can model complex k
 
 
 
-\# Technical Notes
+# Technical Notes
 
 • Single HTML file – entire application in one file for portability
 
