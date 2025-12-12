@@ -1,10 +1,34 @@
-# In short:
+# Summary:
 It's a fully structured, validated environment for modeling knowledge.
 Hierarchy, references, and integrity are rigorously enforced.
 Every piece of data has a precise location and ownership.
 A structured knowledge modeling environment with rigorous validation and referential integrity.
+If something feels strict — IT'S DOING YOU A FAVOR.
+### DharmaForge shines in knowledge domains where you have:
 
-DharmaForge enforces hierarchy, ownership, and data contracts to ensure every piece of information has a precise location and well-defined relationships.
+• Structure
+
+• Reuse
+
+• Hierarchy
+
+• Cross-references
+
+• Evolution over time
+
+### Philosophy
+
+DharmaForge prioritizes correctness over comfort. The system:
+
+• Makes invalid states impossible to create through the UI
+
+• Surfaces errors clearly without hiding them
+
+• Refuses to auto-fix or mutate data "helpfully"
+
+• Enforces single ownership and referential integrity
+
+• Provides escape hatches (validation warnings) but never silent fixes
 
 # Core Concepts
 DharmaForge is built around three key elements:
@@ -45,7 +69,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-### Instantiation (contain mode)
+###  (contain mode)
 
 • Ownership link to a single child instance
 
@@ -55,7 +79,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-### Instantiation (reference mode)
+###  (reference mode)
 
 • Reference link to a single existing instance
 
@@ -65,7 +89,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-### InstantiationList (contain mode)
+### List (contain mode)
 
 • Ownership link to multiple child instances
 
@@ -75,7 +99,7 @@ Fields define the type and behavior of each data slot in a blueprint.
 
 
 
-### InstantiationList (reference mode)
+### List (reference mode)
 
 • Reference link to multiple existing instances
 
@@ -116,7 +140,7 @@ Fields may include:
 
 • cardTypeFilter → restricts which blueprint types can be linked
 
-• fieldMode → "CONTAIN" or "REFERENCE" (for Instantiation/InstantiationList)
+• fieldMode → "CONTAIN" or "REFERENCE" (for /List)
 
 • isFieldStatic → marks field as using static default
 
@@ -144,7 +168,7 @@ Instances are concrete data objects created from blueprints.
 
 • Every instance except root has exactly one parent.
 
-• Only Instantiation (contain) and InstantiationList (contain) establish ownership.
+• Only  (contain) and List (contain) establish ownership.
 
 • Deleting a parent cascades to all owned children.
 
@@ -154,7 +178,7 @@ Instances are concrete data objects created from blueprints.
 
 # Reference Rules
 
-• Instantiation (reference) and InstantiationList (reference) create non-owning links
+•  (reference) and List (reference) create non-owning links
 
 • InstanceReference and InstanceReferenceList are always non-owning
 
@@ -219,9 +243,9 @@ Main workspace for editing the selected item.
 
 • Edit primitive field values (text, number)
 
-• Add/remove Instantiation children (contain or reference mode)
+• Add/remove  children (contain or reference mode)
 
-• Add/remove InstantiationList children (contain or reference mode)
+• Add/remove List children (contain or reference mode)
 
 • Manage InstanceReference and InstanceReferenceList links
 
@@ -289,7 +313,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 # Field Kind Decision Guide:
 
-### Use Instantiation (contain) when:
+### Use  (contain) when:
 
 • Parent owns and manages child's lifecycle
 
@@ -297,7 +321,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 • Example: Document → ContentBlocks, Form → FormFields
 
-### Use Instantiation (reference) when:
+### Use  (reference) when:
 
 • Parent needs a single reference to an existing instance
 
@@ -307,7 +331,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 
 
-### Use InstantiationList (contain) when:
+### Use List (contain) when:
 
 • Parent owns and manages multiple children
 
@@ -317,7 +341,7 @@ Click navigation – reference chips are clickable to jump to targets
 
 
 
-### Use InstantiationList (reference) when:
+### Use List (reference) when:
 
 • Parent needs multiple references to existing instances
 
@@ -412,9 +436,9 @@ Internal code uses legacy constant names for backward compatibility:
 
 &nbsp;       PRIMITIVE: 'primitive',
 
-&nbsp;       CARD\_REF: 'instantiation',
+&nbsp;       CARD\_REF: '',
 
-&nbsp;       LIST\_OF\_CARDS: 'instantiationList',
+&nbsp;       LIST\_OF\_CARDS: 'List',
 
 &nbsp;       ENTITY\_REF: 'instanceReference',
 
@@ -442,9 +466,7 @@ const PRIMITIVE\_TYPE = {
 
 };
 
-UI and documentation use conceptual names (Instantiation, InstanceReference, etc), while code uses legacy constants for stability.
-
-
+UI and documentation use conceptual names (instantiator, InstanceReference, etc), while code uses legacy constants for stability.
 
 # Validation (Important!)
 
@@ -466,7 +488,32 @@ Validation runs automatically and surfaces errors without mutating state.
 
 • Broken references are flagged but allowed
 
+# Undo/Redo integrity
+Undo in DharmaForge isn’t: “Reverse this action” - It’s: “Go back to an earlier universe”
 
+• Identities matter
+
+• References matter
+
+• History matters
+
+• Carefully avoids resurrecting deleted things incorrectly and breaking references silently
+
+Validation is the "Truth Button" - When you press it, DharmaForge checks:
+
+• Does anything have two parents?
+
+• Does anything exist without a parent?
+
+• Are there references to deleted things?
+
+• Are static-only items leaking into runtime?
+
+• It does not auto-fix - it simply tells you the truth.
+
+• Validation tells you if the data structure can be trusted.
+
+DharmaForge enforces hierarchy, ownership, and data contracts to ensure every piece of information has a precise location and well-defined relationships.
 
 ### Does NOT:
 
@@ -477,7 +524,6 @@ Validation runs automatically and surfaces errors without mutating state.
 • Mutate state to "correct" errors
 
 • Hide invalid data from the user
-
 
 
 # Static Defaults
@@ -495,7 +541,6 @@ Blueprints can define static default values for primitive fields.
 • Visual indicators show defaults vs overrides (amber borders, tooltips)
 
 • "Reset to Default" button available for overridden fields
-
 
 
 ### Example:
@@ -520,27 +565,7 @@ javascript{
 
 }
 
-
-
-# Philosophy
-
-DharmaForge prioritizes correctness over comfort. The system:
-
-• Makes invalid states impossible to create through the UI
-
-• Surfaces errors clearly without hiding them
-
-• Refuses to auto-fix or mutate data "helpfully"
-
-• Enforces single ownership and referential integrity
-
-• Provides escape hatches (validation warnings) but never silent fixes
-
-
-
 The goal is a trustworthy structured environment where users can model complex knowledge with confidence that the system enforces constraints rigorously and transparently.
-
-
 
 # Technical Notes
 
