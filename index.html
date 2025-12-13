@@ -98,10 +98,10 @@
         }
 
         .left {
-            width: 360px;
-            flex: 0 0 360px;
-            min-width: 260px;
-            max-width: 520px
+            width: 410px;
+            flex: 0 0 410px;
+            min-width: 300px;
+            max-width: 430px
         }
 
         .center {
@@ -110,9 +110,9 @@
         }
 
         .right {
-            width: 340px;
-            flex: 0 0 340px;
-            min-width: 260px
+            width: 220px;
+            flex: 0 0 220px;
+            min-width: 200px
         }
 
         .pane .title {
@@ -131,7 +131,7 @@
             overflow-y: auto
         }
 
-        .template-list {
+        .blueprint-list {
             overflow: auto;
             flex: 1;
             min-height: 0
@@ -483,12 +483,12 @@
             box-sizing: border-box;
         }
 
-        .instance-card.deleted-template {
+        .instance-card.deleted-blueprint {
             border-color: var(--border);
             opacity: 0.8;
         }
 
-        .instance-card.deleted-template .instance-header {
+        .instance-card.deleted-blueprint .instance-header {
             background: rgba(128, 128, 128, 0.1);
         }
 
@@ -688,6 +688,103 @@
             font-weight: bold;
         }
 
+        /* Expandable chip styles */
+        .chip-container {
+            margin-bottom: 4px;
+            width: 100%;
+        }
+
+        .chip-twisty {
+            display: inline-block;
+            width: 14px;
+            text-align: center;
+            font-size: 11px;
+            margin-right: 4px;
+            user-select: none;
+            transition: transform 0.15s ease;
+        }
+
+        .chip-twisty.expandable {
+            cursor: pointer;
+        }
+
+        .chip-twisty.expandable:hover {
+            color: var(--accent);/
+        }
+
+        .chip-expanded-view {
+            margin-left: 20px;
+            padding: 10px;
+            margin-top: 6px;
+            border-left: 2px solid var(--border);
+            background: linear-gradient(180deg, rgba(77, 163, 255, 0.02), transparent);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        @keyframes expandIn {
+            from {
+                opacity: 0;
+                max-height: 0;
+                overflow: hidden;
+                padding-top: 0;
+                padding-bottom: 0;
+            }
+
+            to {
+                opacity: 1;
+                max-height: 600px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+        }
+
+        .chip-field-line {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
+            align-items: baseline;
+        }
+
+        .chip-field-key {
+            min-width: 90px;
+            max-width: 120px;
+            color: var(--muted);
+            font-weight: 500;
+            flex-shrink: 0;
+            font-size: 11px;
+        }
+
+        .chip-field-value {
+            color: var(--text);
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .chip-field-value.clickable {
+            cursor: pointer;
+            color: var(--accent);
+        }
+
+        .chip-field-value.clickable:hover {
+            text-decoration: underline;
+        }
+
+        .chip-expanded-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chip-expanded-title {
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--accent);
+        }
+
         @media(max-width:980px) {
             .left {
                 display: none
@@ -701,6 +798,39 @@
                 flex: 1
             }
         }
+
+        /* ======= DARK SCROLLBARS (Chrome, Edge, Safari) ======= */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        /* ======= DARK SCROLLBARS (Firefox) ======= */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.12) rgba(255, 255, 255, 0.03);
+        }
+
+        header .btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.08);
+            transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
     </style>
 </head>
 
@@ -708,58 +838,90 @@
     <div class="app">
         <header>
             <h1>DharmaForge: A Strict, Self-Validating Knowledge Modeling Engine - v1.0</h1>
+
             <div class="nav-buttons">
                 <button id="backBtn" class="btn small" title="Back">◀</button>
                 <button id="forwardBtn" class="btn small" title="Forward">▶</button>
             </div>
+
             <div class="top-controls">
                 <button id="undoBtn" class="btn small">Undo (Ctrl+Z)</button>
                 <button id="redoBtn" class="btn small">Redo (Ctrl+Y)</button>
                 <button id="exportBtn" class="btn small">Export JSON</button>
                 <button id="importBtn" class="btn small">Import JSON</button>
                 <button id="validateBtn" class="btn small">Validate</button>
-                <button id="cleanupOrphansBtn" class="btn small">🧹 Clean Orphans</button>
+                <button id="cleanupOrphansBtn" class="btn small">Clean Orphans</button>
                 <button id="resetBtn" class="btn small">Reset</button>
+                <a id="Discord" href="https://discord.gg/NnP3tyG8gQ" target="_blank" class="btn small"
+                    style="text-decoration:none;">
+                    Discord
+                </a>
             </div>
         </header>
 
         <main>
+            <!-- LEFT PANE -->
             <div class="pane left">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                     <div class="title" style="margin-bottom:0">Instance Hierarchy</div>
                     <label style="display:flex;align-items:center;gap:4px;margin:0;font-size:11px">
-                        <input type="checkbox" id="verboseToggle" checked style="width:auto">
+                        <input type="checkbox" id="verboseToggle" style="width:auto">
                         <span class="muted">Verbose</span>
                     </label>
                 </div>
-                <div class="tree" id="hierarchy"></div>
+
+                <!-- SCROLL CONTAINER -->
+                <div class="tree" id="hierarchy" data-scroll-key="hierarchy">
+                </div>
+
                 <div class="footer">
-                    <div class="muted">Selected: <span id="selectedSummary">—</span></div>
+                    <div class="muted">
+                        Selected: <span id="selectedSummary">—</span>
+                    </div>
                 </div>
             </div>
 
+            <!-- CENTER PANE -->
             <div class="pane center">
                 <div class="title">Workspace</div>
-                <div class="editor" id="editor"></div>
+
+                <!-- SCROLL CONTAINER -->
+                <div class="editor" id="editor" data-scroll-key="editor">
+                </div>
             </div>
 
+            <!-- RIGHT PANE -->
             <div class="pane right">
                 <div style="display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
                     <div class="title">Blueprint Library</div>
                     <button id="newBlueprintBtn" class="btn small primary">+ New</button>
                 </div>
+
                 <div class="search" style="margin:8px 0;flex-shrink:0">
                     <input id="templateSearch" type="text" placeholder="Search blueprints" />
                 </div>
-                <div class="template-list" id="templateList"></div>
+
+                <!-- SCROLL CONTAINER -->
+                <div class="blueprint-list" id="templateList" data-scroll-key="library">
+                </div>
             </div>
         </main>
     </div>
+
 
     <input id="fileInput" type="file" style="display:none" accept="application/json" />
 
     <script>
         'use strict';
+
+        // Generic top-bar link configuration
+        const genericLink = document.getElementById('genericLink');
+
+        // Easy one-liner reconfiguration
+        function setTopLink(label, url) {
+            genericLink.textContent = label;
+            genericLink.href = url;
+        }
 
         // ============================================================================
         // CONSTANTS & ENUMS
@@ -767,10 +929,10 @@
 
         const FIELD_KIND = {
             PRIMITIVE: 'primitive',
-            CARD_REF: 'instantiator',
-            LIST_OF_CARDS: 'instantiatorList',
-            ENTITY_REF: 'instanceReference',
-            LIST_ENTITY_REF: 'instanceReferenceList'  // ← ADD THIS LINE
+            INSTANTIATOR: 'instantiator',
+            INSTANTIATOR_LIST: 'instantiatorList',
+            INSTANCE_REFERENCE: 'instanceReference',
+            INSTANCE_REFERENCE_LIST: 'instanceReferenceList'  // ← ADD THIS LINE
         };
 
         const FIELD_MODE = {
@@ -831,36 +993,37 @@
          * Check if a field is a contain-mode field (creates ownership).
          */
         function isContainField(field) {
-            return (
-                (field.fieldKind === FIELD_KIND.CARD_REF ||
-                    field.fieldKind === FIELD_KIND.LIST_OF_CARDS) &&
-                field.fieldMode === FIELD_MODE.CONTAIN
-            );
+            return false;
+            /*return (field.fieldKind === FIELD_KIND.INSTANTIATOR ||
+                    field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) &&
+                field.fieldMode === FIELD_MODE.REFERENCE);*/
         }
 
         /**
          * Check if a field is a reference-mode field (non-owning).
          */
         function isReferenceField(field) {
-            return (
-                (field.fieldKind === FIELD_KIND.CARD_REF ||
-                    field.fieldKind === FIELD_KIND.LIST_OF_CARDS) &&
-                field.fieldMode === FIELD_MODE.REFERENCE
+            /*return (
+                ((field.fieldKind === FIELD_KIND.INSTANTIATOR ||    
+                    field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) && 
+                (field.fieldMode === FIELD_MODE.CONTAIN || field.fieldMode === FIELD_MODE.REFERENCE))
             );
+            */
+            return true;
         }
 
         /**
          * Check if a field is an instanceReference field (always non-owning).
          */
-        function isEntityRefField(field) {
-            return field.fieldKind === FIELD_KIND.ENTITY_REF || field.fieldKind === FIELD_KIND.LIST_ENTITY_REF;
+        function isInstanceReferenceField(field) {
+            return field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE || field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST;
         }
 
         /**
-         * DEPRECATED Check if a field is static (defined by template, not instance). DEPRECATED.
+         * DEPRECATED Check if a field is static (defined by blueprint, not instance). DEPRECATED.
          */
-        function isFieldStatic(template, field) {
-            return false //template.isStatic === true || field.isFieldStatic === true;
+        function isFieldStatic(blueprint, field) {
+            return false //blueprint.isStatic === true || field.isFieldStatic === true;
         }
 
         /**
@@ -907,11 +1070,15 @@
         let selected = { kind: 'instance', id: null };
         let collapsed = {};
         let editorCollapsed = {};
-        let verboseMode = true;
+        let verboseMode = false;
 
         // HARDENING: Track validation state
         let lastValidationResult = null;
         let validationWarningsVisible = false;
+
+        // EXPANDABLE CHIPS: Track which chips are expanded
+        // Key format: "instanceId::fieldId::refId"
+        let expandedChips = new Set();
 
         // ============================================================================
         // INTEGRITY HELPERS
@@ -936,21 +1103,21 @@
 
                 reachable.add(instId);
 
-                const tpl = findBlueprintById(inst.templateId);
-                if (!tpl) return;
+                const blueprint = findBlueprintById(inst.templateId);
+                if (!blueprint) return;
 
-                for (const field of tpl.fields) {
-                    if (!isContainField(field)) continue;
+                for (const field of blueprint.fields) {
+                    if (false) continue;
 
                     const val = inst.fieldValues[field.id];
                     if (!val) continue;
 
                     // FIXED: Contain mode now stores IDs (strings), not objects
-                    if (field.fieldKind === FIELD_KIND.CARD_REF) {
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                         if (typeof val === 'string') {
                             traverse(val);
                         }
-                    } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                         if (Array.isArray(val)) {
                             for (const childId of val) {
                                 if (typeof childId === 'string') {
@@ -960,7 +1127,7 @@
                         }
                     }
                 }
-            }  // ← This closing brace was missing
+            }
 
             if (state.rootInstanceId) {
                 traverse(state.rootInstanceId);
@@ -1010,18 +1177,18 @@
                     ownershipMap.get(inst.id).push({ parentId, parentFieldId });
                 }
 
-                const tpl = findBlueprintById(inst.templateId);
-                if (!tpl) return;
+                const blueprint = findBlueprintById(inst.templateId);
+                if (!blueprint) return;
 
-                for (const field of tpl.fields) {
-                    if (!isContainField(field)) continue;
+                for (const field of blueprint.fields) {
+                    if (true) continue;
 
                     const val = inst.fieldValues[field.id];
                     if (!val) continue;
 
-                    if (field.fieldKind === FIELD_KIND.CARD_REF && val.id) {
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
                         scanInstance(val, inst.id, field.id);
-                    } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS && Array.isArray(val)) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
                         for (const child of val) {
                             scanInstance(child, inst.id, field.id);
                         }
@@ -1061,18 +1228,18 @@
 
                 descendants.add(instId);
 
-                const tpl = findBlueprintById(inst.templateId);
-                if (!tpl) return;
+                const blueprint = findBlueprintById(inst.templateId);
+                if (!blueprint) return;
 
-                for (const field of tpl.fields) {
-                    if (!isContainField(field)) continue;
+                for (const field of blueprint.fields) {
+                    if (true) continue;
 
                     const val = inst.fieldValues[field.id];
                     if (!val) continue;
 
-                    if (field.fieldKind === FIELD_KIND.CARD_REF && val.id) {
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
                         traverse(val.id);
-                    } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS && Array.isArray(val)) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
                         for (const child of val) {
                             if (child?.id) traverse(child.id);
                         }
@@ -1086,7 +1253,7 @@
             return descendants;
         }
 
-        // HARDENING: Check if template has any instances depending on it
+        // HARDENING: Check if blueprint has any instances depending on it
         function getBlueprintInstanceCount(templateId) {
             let count = 0;
             for (const instId in state.instances) {
@@ -1108,15 +1275,15 @@
                 const val = inst.fieldValues[fieldId];
                 if (!val) continue;
 
-                const tpl = findBlueprintById(templateId);
-                if (!tpl) continue;
+                const blueprint = findBlueprintById(templateId);
+                if (!blueprint) continue;
 
-                const field = tpl.fields.find(f => f.id === fieldId);
-                if (!field || !isContainField(field)) continue;
+                const field = blueprint.fields.find(f => f.id === fieldId);
+                if (!field) continue;
 
-                if (field.fieldKind === FIELD_KIND.CARD_REF && val.id) {
+                if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
                     count++;
-                } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS && Array.isArray(val)) {
+                } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
                     count += val.filter(c => c?.id).length;
                 }
             }
@@ -1199,15 +1366,15 @@
                 // HARDENING: Ensure all field values match their field kinds + normalize to IDs
                 for (const instId in state.instances) {
                     const inst = state.instances[instId];
-                    const tpl = state.blueprints.find(t => t.id === inst.templateId);
-                    if (!tpl) continue;
+                    const blueprint = state.blueprints.find(t => t.id === inst.templateId);
+                    if (!blueprint) continue;
 
-                    for (const field of tpl.fields || []) {
+                    for (const field of blueprint.fields || []) {
                         if (!inst.fieldValues) inst.fieldValues = {};
                         const val = inst.fieldValues[field.id];
 
                         // FIXED: Normalize contain-mode fields to store IDs (migration from old format)
-                        if (field.fieldKind === FIELD_KIND.CARD_REF) {
+                        if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                             if (val && typeof val === 'object' && val.id) {
                                 // Old format: stored full object, convert to ID
                                 inst.fieldValues[field.id] = val.id;
@@ -1217,7 +1384,7 @@
                             }
                         }
 
-                        if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                        if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                             if (!Array.isArray(val)) {
                                 // Wrong type: not an array
                                 if (val && typeof val === 'object' && val.id) {
@@ -1236,8 +1403,8 @@
                         }
 
                         // Ensure entity ref fields are arrays of IDs
-                        if (field.fieldKind === FIELD_KIND.ENTITY_REF ||
-                            field.fieldKind === FIELD_KIND.LIST_ENTITY_REF) {
+                        if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE ||
+                            field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
                             if (!Array.isArray(val)) {
                                 inst.fieldValues[field.id] = [];
                             }
@@ -1356,10 +1523,10 @@
             // HARDENING: Ensure all reachable instances are in registry
             ensureRegistryConsistency(st);
 
-            // HARDENING: Ensure template static properties exist
-            for (const tpl of st.blueprints || []) {
-                if (tpl.isStatic === undefined) tpl.isStatic = false;
-                if (!tpl.staticValues) tpl.staticValues = {};
+            // HARDENING: Ensure blueprint static properties exist
+            for (const blueprint of st.blueprints || []) {
+                if (blueprint.isStatic === undefined) blueprint.isStatic = false;
+                if (!blueprint.staticValues) blueprint.staticValues = {};
             }
         }
 
@@ -1381,16 +1548,16 @@
                     registryIds.add(inst.id);
                 }
 
-                const tpl = st.blueprints.find(t => t.id === inst.templateId);
-                if (!tpl) return;
+                const blueprint = st.blueprints.find(t => t.id === inst.templateId);
+                if (!blueprint) return;
 
-                for (const field of tpl.fields || []) {
-                    if (!isContainField(field)) continue;
+                for (const field of blueprint.fields || []) {
+                    if (true) continue;
                     const val = inst.fieldValues?.[field.id];
                     if (!val) continue;
-                    if (field.fieldKind === FIELD_KIND.CARD_REF && val.id) {
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
                         scanTree(val, visited);
-                    } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS && Array.isArray(val)) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
                         for (const child of val) {
                             if (child?.id) scanTree(child, visited);
                         }
@@ -1422,18 +1589,18 @@
                 registry[inst.id] = inst;
             }
 
-            const tpl = findBlueprintById(inst.templateId);
-            if (!tpl) return;
+            const blueprint = findBlueprintById(inst.templateId);
+            if (!blueprint) return;
 
-            for (const field of tpl.fields || []) {
+            for (const field of blueprint.fields || []) {
                 const val = inst.fieldValues?.[field.id];
                 if (!val) continue;
 
-                if (field.fieldKind === FIELD_KIND.CARD_REF && field.fieldMode === FIELD_MODE.CONTAIN) {
+                /*if (field.fieldKind === FIELD_KIND.INSTANTIATOR && field.fieldMode === FIELD_MODE.CONTAIN) {
                     if (val && typeof val === 'object' && val.id) {
                         flattenInstanceTree(val, registry, visited);
                     }
-                } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS && field.fieldMode === FIELD_MODE.CONTAIN) {
+                } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && field.fieldMode === FIELD_MODE.CONTAIN) {
                     if (Array.isArray(val)) {
                         for (const child of val) {
                             if (child && typeof child === 'object' && child.id) {
@@ -1441,12 +1608,12 @@
                             }
                         }
                     }
-                }
+                }*/
             }
         }
 
         // ============================================================================
-        // TEMPLATE HELPERS
+        // BLUEPRINT HELPERS
         // ============================================================================
 
         function findBlueprintById(id) {
@@ -1503,39 +1670,39 @@
         // ============================================================================
 
         function createInstance(templateId, parentId = null, parentFieldId = null) {
-            const tpl = findBlueprintById(templateId);
-            if (!tpl) return null;
+            const blueprint = findBlueprintById(templateId);
+            if (!blueprint) return null;
 
             const inst = {
                 id: generateUUID(),
-                templateId: tpl.id,
+                templateId: blueprint.id,
                 fieldValues: {},
                 _parent: parentId,
                 _parentField: parentFieldId
             };
 
             // Initialize field values
-            for (const field of tpl.fields) {
+            for (const field of blueprint.fields) {
                 // STATIC REIMPLEMENTATION: Skip primitives with defaults (leave undefined)
-                if (tpl.isStatic &&
+                if (blueprint.isStatic &&
                     field.fieldKind === FIELD_KIND.PRIMITIVE &&
-                    tpl.staticValues?.[field.id] !== undefined &&
-                    tpl.staticValues[field.id] !== null &&
-                    tpl.staticValues[field.id] !== '') {
-                    // Don't initialize - leave undefined to use template default
+                    blueprint.staticValues?.[field.id] !== undefined &&
+                    blueprint.staticValues[field.id] !== null &&
+                    blueprint.staticValues[field.id] !== '') {
+                    // Don't initialize - leave undefined to use blueprint default
                     continue;
                 }
 
                 // Default initialization for all field kinds
                 if (field.fieldKind === FIELD_KIND.PRIMITIVE) {
                     inst.fieldValues[field.id] = field.primitiveType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
-                } else if (field.fieldKind === FIELD_KIND.CARD_REF) {
+                } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                     inst.fieldValues[field.id] = null;
-                } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                     inst.fieldValues[field.id] = [];
-                } else if (field.fieldKind === FIELD_KIND.ENTITY_REF) {
+                } else if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
                     inst.fieldValues[field.id] = [];
-                } else if (field.fieldKind === FIELD_KIND.LIST_ENTITY_REF) {
+                } else if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
                     inst.fieldValues[field.id] = [];
                 }
             }
@@ -1583,22 +1750,22 @@
                 const current = findInstanceById(id);
                 if (!current) return;
 
-                const tpl = findBlueprintById(current.templateId);
-                if (!tpl) return;
+                const blueprint = findBlueprintById(current.templateId);
+                if (!blueprint) return;
 
                 // Traverse only contain-mode children
-                for (const field of tpl.fields) {
-                    if (!isContainField(field)) continue;
+                for (const field of blueprint.fields) {
+                    if (true) continue;
 
                     const val = current.fieldValues[field.id];
                     if (!val) continue;
 
                     // FIXED: Contain mode now stores IDs (strings), not objects
-                    if (field.fieldKind === FIELD_KIND.CARD_REF) {
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                         if (val && typeof val === 'string') {
                             collectOwnedDescendants(val);
                         }
-                    } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                         if (Array.isArray(val)) {
                             for (const childId of val) {
                                 if (childId && typeof childId === 'string') {
@@ -1616,13 +1783,13 @@
             if (inst._parent) {
                 const parent = findInstanceById(inst._parent);
                 if (parent && inst._parentField) {
-                    const parentTpl = findBlueprintById(parent.templateId);
-                    if (parentTpl) {
-                        const parentField = parentTpl.fields.find(f => f.id === inst._parentField);
+                    const parentBlueprint = findBlueprintById(parent.templateId);
+                    if (parentBlueprint) {
+                        const parentField = parentBlueprint.fields.find(f => f.id === inst._parentField);
                         if (parentField && isContainField(parentField)) {
-                            if (parentField.fieldKind === FIELD_KIND.CARD_REF) {
+                            if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR) {
                                 parent.fieldValues[parentField.id] = null;
-                            } else if (parentField.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                            } else if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                                 const arr = parent.fieldValues[parentField.id];
                                 if (Array.isArray(arr)) {
                                     // FIXED: Array contains IDs (strings), not objects
@@ -1659,19 +1826,19 @@
 
             for (const instId in state.instances) {
                 const inst = state.instances[instId];
-                const tpl = findBlueprintById(inst.templateId);
-                if (!tpl) continue;
+                const blueprint = findBlueprintById(inst.templateId);
+                if (!blueprint) continue;
 
-                for (const field of tpl.fields) {
-                    if (isFieldStatic(tpl, field)) continue;
+                for (const field of blueprint.fields) {
+                    if (isFieldStatic(blueprint, field)) continue;
 
                     const val = inst.fieldValues[field.id];
 
-                    // ENTITY_REF and LIST_ENTITY_REF: Do NOT clean broken references
+                    // INSTANCE_REFERENCE and INSTANCE_REFERENCE_LIST: Do NOT clean broken references
                     // Broken references are valid states - users see ⚠️ broken chips
 
                     // Clean reference-mode instantiator
-                    if (isReferenceField(field) && field.fieldKind === FIELD_KIND.CARD_REF) {
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                         if (val && deletedIds.has(val)) {
                             inst.fieldValues[field.id] = null;
                             console.log(`  ✂️ Cleaned instantiator field "${field.name}" in instance ${instId.slice(0, 8)}`);
@@ -1679,7 +1846,7 @@
                     }
 
                     // Clean reference-mode instantiatorList
-                    if (isReferenceField(field) && field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                         if (Array.isArray(val)) {
                             const before = val.length;
                             inst.fieldValues[field.id] = val.filter(id => !deletedIds.has(id));
@@ -1723,15 +1890,15 @@
             const newParent = findInstanceById(newParentId);
             if (!newParent) return { success: false, error: 'New parent not found' };
 
-            const newParentTpl = findBlueprintById(newParent.templateId);
-            if (!newParentTpl) return { success: false, error: 'New parent template not found' };
+            const newParentBlueprint = findBlueprintById(newParent.templateId);
+            if (!newParentBlueprint) return { success: false, error: 'New parent blueprint not found' };
 
-            const newField = newParentTpl.fields.find(f => f.id === newFieldId);
+            const newField = newParentBlueprint.fields.find(f => f.id === newFieldId);
             if (!newField) return { success: false, error: 'New field not found' };
 
-            if (!isContainField(newField)) {
+            /*if (!isContainField(newField)) {
                 return { success: false, error: 'New field must be contain-mode' };
-            }
+            }*/
 
             // HARDENING: Prevent moving root
             if (instanceId === state.rootInstanceId) {
@@ -1751,9 +1918,9 @@
 
             // Check type compatibility
             if (newField.cardTypeFilter) {
-                const instTpl = findBlueprintById(inst.templateId);
-                if (instTpl && instTpl.type !== newField.cardTypeFilter) {
-                    return { success: false, error: `Type mismatch: expected ${newField.cardTypeFilter}, got ${instTpl.type}` };
+                const instBlueprint = findBlueprintById(inst.templateId);
+                if (instBlueprint && instBlueprint.type !== newField.cardTypeFilter) {
+                    return { success: false, error: `Type mismatch: expected ${newField.cardTypeFilter}, got ${instBlueprint.type}` };
                 }
             }
 
@@ -1761,13 +1928,13 @@
             if (inst._parent) {
                 const oldParent = findInstanceById(inst._parent);
                 if (oldParent && inst._parentField) {
-                    const oldParentTpl = findBlueprintById(oldParent.templateId);
-                    if (oldParentTpl) {
-                        const oldField = oldParentTpl.fields.find(f => f.id === inst._parentField);
+                    const oldParentBlueprint = findBlueprintById(oldParent.templateId);
+                    if (oldParentBlueprint) {
+                        const oldField = oldParentBlueprint.fields.find(f => f.id === inst._parentField);
                         if (oldField) {
-                            if (oldField.fieldKind === FIELD_KIND.CARD_REF) {
+                            if (oldField.fieldKind === FIELD_KIND.INSTANTIATOR) {
                                 oldParent.fieldValues[oldField.id] = null;
-                            } else if (oldField.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                            } else if (oldField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                                 const arr = oldParent.fieldValues[oldField.id];
                                 if (Array.isArray(arr)) {
                                     const idx = arr.indexOf(instanceId);
@@ -1780,12 +1947,12 @@
             }
 
             // Step 2: Add to new parent
-            if (newField.fieldKind === FIELD_KIND.CARD_REF) {
+            if (newField.fieldKind === FIELD_KIND.INSTANTIATOR) {
                 if (newParent.fieldValues[newFieldId]) {
                     return { success: false, error: 'Target instantiator field already occupied' };
                 }
                 newParent.fieldValues[newFieldId] = inst.id;
-            } else if (newField.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+            } else if (newField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                 if (!Array.isArray(newParent.fieldValues[newFieldId])) {
                     newParent.fieldValues[newFieldId] = [];
                 }
@@ -1827,11 +1994,11 @@
             const targetParent = findInstanceById(targetParentId);
             if (!targetParent) return null;
 
-            const targetParentTpl = findBlueprintById(targetParent.templateId);
-            if (!targetParentTpl) return null;
+            const targetParentBlueprint = findBlueprintById(targetParent.templateId);
+            if (!targetParentBlueprint) return null;
 
-            const targetField = targetParentTpl.fields.find(f => f.id === targetFieldId);
-            if (!targetField || !isContainField(targetField)) return null;
+            const targetField = targetParentBlueprint.fields.find(f => f.id === targetFieldId);
+            if (!targetField) return null;
 
             // HARDENING: Prevent copying root
             if (instanceId === state.rootInstanceId) {
@@ -1844,9 +2011,9 @@
             if (!cloned) return null;
 
             // Add to target parent
-            if (targetField.fieldKind === FIELD_KIND.CARD_REF) {
+            if (targetField.fieldKind === FIELD_KIND.INSTANTIATOR) {
                 targetParent.fieldValues[targetFieldId] = cloned;
-            } else if (targetField.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+            } else if (targetField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                 if (!Array.isArray(targetParent.fieldValues[targetFieldId])) {
                     targetParent.fieldValues[targetFieldId] = [];
                 }
@@ -1861,8 +2028,8 @@
          * HARDENING: Ensures all clones are registered.
          */
         function deepCloneInstance(inst, newParentId, newParentFieldId) {
-            const tpl = findBlueprintById(inst.templateId);
-            if (!tpl) return null;
+            const blueprint = findBlueprintById(inst.templateId);
+            if (!blueprint) return null;
 
             const cloned = {
                 id: generateUUID(), // HARDENING: Always fresh UUID
@@ -1873,41 +2040,20 @@
             };
 
             // Clone field values
-            for (const field of tpl.fields) {
-                if (isFieldStatic(tpl, field)) continue;
+            for (const field of blueprint.fields) {
+                if (isFieldStatic(blueprint, field)) continue;
 
                 const val = inst.fieldValues[field.id];
 
                 if (field.fieldKind === FIELD_KIND.PRIMITIVE) {
                     cloned.fieldValues[field.id] = val;
-                } else if (field.fieldKind === FIELD_KIND.CARD_REF) {
-                    if (field.fieldMode === FIELD_MODE.CONTAIN) {
-                        if (val && val.id) {
-                            cloned.fieldValues[field.id] = deepCloneInstance(val, cloned.id, field.id);
-                        } else {
-                            cloned.fieldValues[field.id] = null;
-                        }
-                    } else {
-                        // Reference mode: copy ID verbatim
-                        cloned.fieldValues[field.id] = val;
-                    }
-                } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
-                    if (field.fieldMode === FIELD_MODE.CONTAIN) {
-                        const arr = [];
-                        if (Array.isArray(val)) {
-                            for (const child of val) {
-                                if (child?.id) {
-                                    const childClone = deepCloneInstance(child, cloned.id, field.id);
-                                    if (childClone) arr.push(childClone);
-                                }
-                            }
-                        }
-                        cloned.fieldValues[field.id] = arr;
-                    } else {
-                        // Reference mode: copy IDs verbatim
-                        cloned.fieldValues[field.id] = Array.isArray(val) ? [...val] : [];
-                    }
-                } else if (field.fieldKind === FIELD_KIND.ENTITY_REF) {
+                } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                    // Reference mode: copy ID verbatim
+                    cloned.fieldValues[field.id] = val;
+                } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                    // Reference mode: copy IDs verbatim
+                    cloned.fieldValues[field.id] = Array.isArray(val) ? [...val] : [];
+                } else if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
                     // instanceReference: copy IDs verbatim
                     cloned.fieldValues[field.id] = Array.isArray(val) ? [...val] : [];
                 }
@@ -1975,11 +2121,11 @@
                     errors.push(`Instance ${instId} has invalid UUID`);
                 }
 
-                // Check template exists
-                const tpl = findBlueprintById(inst.templateId);
-                if (!tpl) {
+                // Check blueprint exists
+                const blueprint = findBlueprintById(inst.templateId);
+                if (!blueprint) {
                     errors.push(
-                        `Instance ${instId} references missing template: ${inst.templateId}`
+                        `Instance ${instId} references missing blueprint: ${inst.templateId}`
                     );
                     continue;
                 }
@@ -2004,13 +2150,13 @@
                 }
 
                 // Check field values
-                for (const field of tpl.fields) {
-                    if (isFieldStatic(tpl, field)) continue;
+                for (const field of blueprint.fields) {
+                    if (isFieldStatic(blueprint, field)) continue;
 
                     const val = inst.fieldValues[field.id];
 
                     // Check instanceReference and instanceReferenceList
-                    if (isEntityRefField(field)) {
+                    if (isInstanceReferenceField(field)) {
                         if (!Array.isArray(val)) {
                             errors.push(
                                 `Instance ${instId}, field ${field.name}: ${field.fieldKind} must be array`
@@ -2031,7 +2177,7 @@
 
                             // SEMANTIC WARNING: instanceReference ambiguity
                             if (
-                                field.fieldKind === FIELD_KIND.ENTITY_REF &&
+                                field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE &&
                                 val.length > 1
                             ) {
                                 warnings.push(
@@ -2042,8 +2188,8 @@
                     }
 
                     // Check reference-mode fields
-                    if (isReferenceField(field)) {
-                        if (field.fieldKind === FIELD_KIND.CARD_REF) {
+                    if (true) {
+                        if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                             if (val !== null && !isValidUUID(val)) {
                                 errors.push(
                                     `Instance ${instId}, field ${field.name}: reference instantiator must be UUID or null`
@@ -2054,7 +2200,7 @@
                                     `Instance ${instId}, field ${field.name}: broken reference to ${val}`
                                 );
                             }
-                        } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                        } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                             if (!Array.isArray(val)) {
                                 errors.push(
                                     `Instance ${instId}, field ${field.name}: reference instantiatorList must be array`
@@ -2077,8 +2223,8 @@
                     }
 
                     // FIXED: Check contain-mode fields (now store IDs like reference mode)
-                    if (isContainField(field)) {
-                        if (field.fieldKind === FIELD_KIND.CARD_REF) {
+                    if (false) {
+                        if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                             if (val !== null && !isValidUUID(val)) {
                                 errors.push(
                                     `Instance ${instId}, field ${field.name}: contain instantiator must be valid UUID or null`
@@ -2089,7 +2235,7 @@
                                     `Instance ${instId}, field ${field.name}: contain instantiator references missing instance ${val}`
                                 );
                             }
-                        } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                        } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                             if (!Array.isArray(val)) {
                                 errors.push(
                                     `Instance ${instId}, field ${field.name}: contain instantiatorList must be array`
@@ -2152,17 +2298,17 @@
                     return;
                 }
 
-                const tpl = findBlueprintById(inst.templateId);
-                if (tpl) {
-                    for (const field of tpl.fields) {
-                        if (!isContainField(field)) continue;
+                const blueprint = findBlueprintById(inst.templateId);
+                if (blueprint) {
+                    for (const field of blueprint.fields) {
+                        if (true) continue;
 
                         const val = inst.fieldValues[field.id];
                         if (!val) continue;
 
-                        if (field.fieldKind === FIELD_KIND.CARD_REF && val.id) {
+                        if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
                             dfs(val.id, path);
-                        } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS && Array.isArray(val)) {
+                        } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
                             for (const child of val) {
                                 if (child?.id) dfs(child.id, path);
                             }
@@ -2187,14 +2333,14 @@
 
         function addField(templateId, field) {
             pushUndo();
-            const tpl = findBlueprintById(templateId);
-            if (!tpl) return;
+            const blueprint = findBlueprintById(templateId);
+            if (!blueprint) return;
 
-            tpl.fields.push(field);
+            blueprint.fields.push(field);
 
-            // Initialize field in template static values (primitives only)
-            if (tpl.isStatic && field.fieldKind === FIELD_KIND.PRIMITIVE) {
-                tpl.staticValues[field.id] = field.primitiveType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
+            // Initialize field in blueprint static values (primitives only)
+            if (blueprint.isStatic && field.fieldKind === FIELD_KIND.PRIMITIVE) {
+                blueprint.staticValues[field.id] = field.primitiveType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
             } else {
                 // Initialize in all existing instances
                 for (const instId in state.instances) {
@@ -2203,13 +2349,13 @@
 
                     if (field.fieldKind === FIELD_KIND.PRIMITIVE) {
                         inst.fieldValues[field.id] = field.primitiveType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
-                    } else if (field.fieldKind === FIELD_KIND.CARD_REF) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                         inst.fieldValues[field.id] = null;
-                    } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                         inst.fieldValues[field.id] = [];
-                    } else if (field.fieldKind === FIELD_KIND.ENTITY_REF) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
                         inst.fieldValues[field.id] = [];
-                    } else if (field.fieldKind === FIELD_KIND.LIST_ENTITY_REF) {
+                    } else if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
                         inst.fieldValues[field.id] = [];
                     }
                 }
@@ -2221,18 +2367,18 @@
 
         function removeField(templateId, fieldId) {
             pushUndo();
-            const tpl = findBlueprintById(templateId);
-            if (!tpl) return;
+            const blueprint = findBlueprintById(templateId);
+            if (!blueprint) return;
 
-            // Remove field from template
-            tpl.fields = tpl.fields.filter(f => f.id !== fieldId);
+            // Remove field from blueprint
+            blueprint.fields = blueprint.fields.filter(f => f.id !== fieldId);
 
-            // Remove from template static values if exists
-            if (tpl.staticValues && tpl.staticValues[fieldId] !== undefined) {
-                delete tpl.staticValues[fieldId];
+            // Remove from blueprint static values if exists
+            if (blueprint.staticValues && blueprint.staticValues[fieldId] !== undefined) {
+                delete blueprint.staticValues[fieldId];
             }
 
-            // Remove field data from all instances of this template
+            // Remove field data from all instances of this blueprint
             for (const instId in state.instances) {
                 const inst = state.instances[instId];
                 if (inst.templateId === templateId && inst.fieldValues[fieldId] !== undefined) {
@@ -2302,7 +2448,7 @@
         }
 
         // ============================================================================
-        // ENTITY_REF NAVIGATION
+        // INSTANCE_REFERENCE NAVIGATION
         // ============================================================================
 
         /**
@@ -2371,6 +2517,132 @@
         }
 
         // ============================================================================
+        // EXPANDABLE CHIP MANAGEMENT
+        // ============================================================================
+
+        /**
+         * Generate a unique key for tracking expanded chip state.
+         */
+        function getChipKey(instanceId, fieldId, refId) {
+            return `${instanceId}::${fieldId}::${refId}`;
+        }
+
+        /**
+         * Check if a chip is currently expanded.
+         */
+        function isChipExpanded(instanceId, fieldId, refId) {
+            return expandedChips.has(getChipKey(instanceId, fieldId, refId));
+        }
+
+        /**
+         * Toggle the expansion state of a chip.
+         */
+        function toggleChipExpansion(instanceId, fieldId, refId) {
+            const key = getChipKey(instanceId, fieldId, refId);
+            if (expandedChips.has(key)) {
+                expandedChips.delete(key);
+            } else {
+                expandedChips.add(key);
+            }
+            renderAll();
+        }
+
+        /**
+         * Render the expanded view of a referenced instance.
+         * Shows all field values in a verbose, inline format.
+         */
+        function renderChipExpandedView(targetInstance, targetBlueprint, refId) {
+            const expandedView = document.createElement('div');
+            expandedView.className = 'chip-expanded-view';
+
+            // Header with title and navigate button
+            const header = document.createElement('div');
+            header.className = 'chip-expanded-header';
+
+            const title = document.createElement('div');
+            title.className = 'chip-expanded-title';
+            const label = getInstanceLabel(refId);
+            title.textContent = `${label} · ${targetBlueprint.name}`;
+            header.appendChild(title);
+
+            expandedView.appendChild(header);
+
+            // Render all fields
+            for (const field of targetBlueprint.fields || []) {
+                const fieldLine = document.createElement('div');
+                fieldLine.className = 'chip-field-line';
+
+                const fieldKey = document.createElement('span');
+                fieldKey.className = 'chip-field-key';
+                fieldKey.textContent = field.name + ':';
+
+                const fieldValue = document.createElement('span');
+                fieldValue.className = 'chip-field-value';
+
+                // Render field value based on kind
+                if (field.fieldKind === FIELD_KIND.PRIMITIVE) {
+                    const val = targetInstance.fieldValues?.[field.id];
+                    if (val === null || val === undefined || val === '') {
+                        fieldValue.textContent = '[empty]';
+                        fieldValue.style.fontStyle = 'italic';
+                        fieldValue.style.color = 'var(--muted)';
+                    } else {
+                        fieldValue.textContent = String(val);
+                    }
+                } else if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
+                    const refs = targetInstance.fieldValues?.[field.id] || [];
+                    if (refs.length === 0) {
+                        fieldValue.textContent = '[empty]';
+                        fieldValue.style.fontStyle = 'italic';
+                        fieldValue.style.color = 'var(--muted)';
+                    } else {
+                        // Show labels of referenced instances
+                        const labels = refs.slice(0, 3).map(id => getInstanceLabel(id));
+                        const displayText = labels.join(', ');
+                        fieldValue.textContent = refs.length > 3 ?
+                            `${displayText}... (+${refs.length - 3} more)` :
+                            displayText;
+                        fieldValue.classList.add('clickable');
+                        fieldValue.title = 'Click to expand';
+                        // Could make this recursive in the future
+                    }
+                } else if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
+                    const refs = targetInstance.fieldValues?.[field.id] || [];
+                    if (refs.length === 0) {
+                        fieldValue.textContent = '[empty]';
+                        fieldValue.style.fontStyle = 'italic';
+                        fieldValue.style.color = 'var(--muted)';
+                    } else {
+                        const labels = refs.slice(0, 3).map((id, idx) => `${idx + 1}. ${getInstanceLabel(id)}`);
+                        const displayText = labels.join(', ');
+                        fieldValue.textContent = refs.length > 3 ?
+                            `${displayText}... (+${refs.length - 3} more)` :
+                            displayText;
+                    }
+                } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR || field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                    const merged = getMergedChildrenWithProvenance(targetBlueprint, targetInstance, field.id);
+                    if (merged.length === 0) {
+                        fieldValue.textContent = '[empty]';
+                        fieldValue.style.fontStyle = 'italic';
+                        fieldValue.style.color = 'var(--muted)';
+                    } else {
+                        const childLabels = merged.slice(0, 3).map(x => getInstanceLabel(x.child.id));
+                        const displayText = childLabels.join(', ');
+                        fieldValue.textContent = merged.length > 3 ?
+                            `${displayText}... (+${merged.length - 3} more)` :
+                            displayText;
+                    }
+                }
+
+                fieldLine.appendChild(fieldKey);
+                fieldLine.appendChild(fieldValue);
+                expandedView.appendChild(fieldLine);
+            }
+
+            return expandedView;
+        }
+
+        // ============================================================================
         // INSTANCE PICKER MODAL (HARDENED)
         // ============================================================================
 
@@ -2415,8 +2687,8 @@
                 if (exclusionSet.has(instId)) continue;
 
                 const inst = state.instances[instId];
-                const tpl = findBlueprintById(inst.templateId);
-                if (tpl && tpl.type === filterType) {
+                const blueprint = findBlueprintById(inst.templateId);
+                if (blueprint && blueprint.type === filterType) {
                     // PHASE 1: Filter for orphans if requested
                     if (showOnlyOrphans) {
                         if (!reachable.has(instId) && instId !== state.rootInstanceId) {
@@ -2439,10 +2711,10 @@
                 for (const inst of candidates) {
                     const item = document.createElement('div');
                     item.className = 'modal-item';
-                    const tpl = findBlueprintById(inst.templateId);
+                    const blueprint = findBlueprintById(inst.templateId);
 
-                    // Instance labeling: template name
-                    const displayLabel = tpl?.name || 'Unknown';
+                    // Instance labeling: blueprint name
+                    const displayLabel = blueprint?.name || 'Unknown';
 
                     item.innerHTML = `
     <div class="card-name">${displayLabel}</div>
@@ -2478,8 +2750,8 @@
         // MERGED CHILDREN HELPER
         // ============================================================================
 
-        function getMergedChildrenWithProvenance(template, instance, fieldId) {
-            const field = template.fields.find(f => f.id === fieldId);
+        function getMergedChildrenWithProvenance(blueprint, instance, fieldId) {
+            const field = blueprint.fields.find(f => f.id === fieldId);
             if (!field) return [];
 
             if (!instance) return [];
@@ -2488,13 +2760,13 @@
             const val = instance.fieldValues[fieldId];
             let children = [];
 
-            if (field.fieldKind === FIELD_KIND.CARD_REF) {
+            if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
                 // FIXED: Both modes now store IDs, resolve to instance
                 if (val) {
                     const resolved = findInstanceById(val);
                     if (resolved) children = [resolved];
                 }
-            } else if (field.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+            } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                 // FIXED: Both modes now store IDs, resolve to instances
                 if (Array.isArray(val)) {
                     children = val.map(id => findInstanceById(id)).filter(Boolean);
@@ -2557,11 +2829,35 @@
         // RENDER ORCHESTRATION
         // ============================================================================
 
+function preserveScroll(fn) {
+    const nodes = document.querySelectorAll('[data-scroll-key]');
+    const scroll = {};
+
+    nodes.forEach(el => {
+        scroll[el.dataset.scrollKey] = el.scrollTop;
+    });
+
+    fn(); // destructive render
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            nodes.forEach(el => {
+                const key = el.dataset.scrollKey;
+                if (scroll[key] !== undefined) {
+                    el.scrollTop = scroll[key];
+                }
+            });
+        });
+    });
+}
+
+
         function renderAll() {
-            console.log('🔄 RENDER ALL called from:', new Error().stack);
-            renderHierarchy();
-            renderLibrary();
-            renderEditor();
+            preserveScroll(() => {
+                renderHierarchy();
+                renderLibrary();
+                renderEditor();
+            });
             updateUndoButtons();
             updateNavButtons();
         }
@@ -2576,6 +2872,77 @@
             backBtn: document.getElementById('backBtn'),
             forwardBtn: document.getElementById('forwardBtn')
         };
+
+        function getBlueprint(inst) {
+            if (!inst) return null;
+
+            const id = inst.blueprint || inst.blueprint;
+            if (!id) return null;
+
+            if (flowDocument && flowDocument.blueprints && flowDocument.blueprints[id]) {
+                return flowDocument.blueprints[id];
+            }
+
+            console.warn("Blueprint not found:", id, inst);
+            return null;
+        }
+
+        /**
+         * Smart instance label used throughout the UI.
+         * Accepts either an instance object or an instance ID string.
+         *
+         * Lookup rules (in order):
+         *  1. If instance.fieldValues has a common "name/title/label" primitive -> use it.
+         *  2. If the blueprint defines a labelField -> use that field's value.
+         *  3. If the blueprint has a first primitive field -> use that.
+         *  4. Fallback to "BlueprintName #<short-id>".
+         *
+         * Uses existing helpers: findInstanceById(id) and findBlueprintById(id).
+         */
+        function getInstanceLabel(idOrInst) {
+            if (!idOrInst) return '<?>';
+
+            // Accept either string id or instance object
+            const inst = (typeof idOrInst === 'string') ? findInstanceById(idOrInst) : idOrInst;
+
+            // If we were given a string id but instance is missing, return short id
+            if (typeof idOrInst === 'string' && !inst) {
+                return idOrInst.slice ? idOrInst.slice(0, 8) : String(idOrInst);
+            }
+
+            if (!inst) return '<?>';
+
+            // 1) Explicit instance-level name stored as a primitive field (common keys)
+            const fv = inst.fieldValues || {};
+            //const commonNameKeys = ['name', 'title', 'label'];
+            //for (const k of commonNameKeys) {
+            //    if (fv[k] !== undefined && fv[k] !== null && fv[k] !== '') {
+            //        return String(fv[k]);
+            //    }
+            //}
+
+            // 2) Blueprint-aware label field
+            const bp = findBlueprintById(inst.templateId);
+            if (bp) {
+                if (bp.labelField && fv[bp.labelField] !== undefined && fv[bp.labelField] !== null && fv[bp.labelField] !== '') {
+                    return String(fv[bp.labelField]);
+                }
+
+                /*
+                // 3) Use first primitive field value (if present)
+                if (Array.isArray(bp.fields)) {
+                    const firstPrim = bp.fields.find(f => f && f.fieldKind === FIELD_KIND.PRIMITIVE);
+                    if (firstPrim && fv[firstPrim.id] !== undefined && fv[firstPrim.id] !== null && fv[firstPrim.id] !== '') {
+                        return String(fv[firstPrim.id]);
+                    }
+                }*/
+            }
+
+            // 4) Fallback: blueprint name (if available) + short id
+            const bpName = bp && bp.name ? bp.name : 'Blueprint';
+            const shortId = inst.id ? inst.id.slice(0, 8) : '?';
+            return `${bpName} #${shortId}`;
+        }
 
         // ============================================================================
         // HIERARCHY RENDERING (HARDENED)
@@ -2616,7 +2983,7 @@
                 }
                 visited.add(inst.id);
 
-                const tpl = findBlueprintById(inst.templateId) || { name: '📦 (Blueprint Deleted)', type: '?', fields: [] };
+                const blueprint = findBlueprintById(inst.templateId) || { name: '📦 (Blueprint Deleted)', type: '?', fields: [] };
                 const li = document.createElement('li');
                 const node = document.createElement('div');
                 node.className = 'tree-node';
@@ -2632,9 +2999,9 @@
 
                 // Check if has children
                 const hasChildren = (() => {
-                    for (const f of tpl.fields || []) {
-                        if (f.fieldKind === FIELD_KIND.CARD_REF || f.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
-                            const merged = getMergedChildrenWithProvenance(tpl, inst, f.id);
+                    for (const f of blueprint.fields || []) {
+                        if (f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                            const merged = getMergedChildrenWithProvenance(blueprint, inst, f.id);
                             if (merged.length > 0) return true;
                         }
                     }
@@ -2657,12 +3024,12 @@
                 label.className = 'node-label';
                 const nameSpan = document.createElement('div');
                 nameSpan.className = 'card-name';
-                nameSpan.textContent = tpl.name;
+                nameSpan.textContent = blueprint.name;
                 label.appendChild(nameSpan);
 
                 const typeSpan = document.createElement('div');
                 typeSpan.className = 'card-type muted';
-                typeSpan.textContent = tpl.type;
+                typeSpan.textContent = blueprint.type;
                 label.appendChild(typeSpan);
 
                 const idSpan = document.createElement('div');
@@ -2715,7 +3082,7 @@
                     details.style.padding = '4px 8px';
                     details.style.marginLeft = '18px';
 
-                    for (const f of tpl.fields || []) {
+                    for (const f of blueprint.fields || []) {
                         const fLine = document.createElement('div');
                         fLine.style.display = 'flex';
                         fLine.style.gap = '8px';
@@ -2733,14 +3100,14 @@
                         if (f.fieldKind === FIELD_KIND.PRIMITIVE) {
                             const primVal = inst.fieldValues?.[f.id];
                             valArea.textContent = (primVal === null || primVal === '') ? '[NULL]' : String(primVal);
-                        } else if (f.fieldKind === FIELD_KIND.ENTITY_REF) {
+                        } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
                             const ids = inst.fieldValues?.[f.id];
                             if (Array.isArray(ids)) {
                                 valArea.textContent = `🔗 ${ids.length} ref(s)`;
                             } else {
                                 valArea.textContent = '[EMPTY]';
                             }
-                        } else if (f.fieldKind === FIELD_KIND.LIST_ENTITY_REF) {
+                        } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
                             // Show ordered list of referenced instance names (vertical, numbered)
                             let ids = inst.fieldValues?.[f.id];
                             if (Array.isArray(ids)) {
@@ -2763,10 +3130,10 @@
 
                                     ids.forEach((refId, index) => {
                                         const refInst = findInstanceById(refId);
-                                        const refTpl = refInst ? findBlueprintById(refInst.templateId) : null;
+                                        const refBlueprint = refInst ? findBlueprintById(refInst.templateId) : null;
 
-                                        // Use template name
-                                        const refName = refInst && refTpl ? refTpl.name : '⚠️ [missing]';
+                                        // Use blueprint name
+                                        const refName = refInst && refBlueprint ? refBlueprint.name : '⚠️ [missing]';
 
                                         const item = document.createElement('div');
                                         item.style.fontSize = '11px';
@@ -2790,11 +3157,11 @@
                             } else {
                                 valArea.textContent = '[EMPTY]';
                             }
-                        } else if (f.fieldKind === FIELD_KIND.CARD_REF || f.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
-                            const merged = getMergedChildrenWithProvenance(tpl, inst, f.id);
+                        } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                            const merged = getMergedChildrenWithProvenance(blueprint, inst, f.id);
                             valArea.textContent = merged.map(x => {
-                                const childTpl = findBlueprintById(x.child.templateId);
-                                return childTpl?.name || '📦 (Blueprint Deleted)';
+                                const childBlueprint = findBlueprintById(x.child.templateId);
+                                return childBlueprint?.name || '📦 (Blueprint Deleted)';
                             }).join(', ');
                         }
 
@@ -2811,9 +3178,9 @@
                     const branch = document.createElement('ul');
                     branch.className = 'tree-branch';
 
-                    for (const f of tpl.fields || []) {
-                        if (f.fieldKind === FIELD_KIND.CARD_REF || f.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
-                            const merged = getMergedChildrenWithProvenance(tpl, inst, f.id);
+                    for (const f of blueprint.fields || []) {
+                        if (f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                            const merged = getMergedChildrenWithProvenance(blueprint, inst, f.id);
                             for (const item of merged) {
                                 const childLi = buildLi(item.child, new Set(visited));
                                 branch.appendChild(childLi);
@@ -2851,12 +3218,12 @@
 
                 const row = document.createElement('div');
                 row.className = 'card-row' +
-                    (selected.kind === 'template' && selected.id === t.id ? ' selected' : '');
-                if (t.isStatic) row.classList.add('static-template');
+                    (selected.kind === 'blueprint' && selected.id === t.id ? ' selected' : '');
+                if (t.isStatic) row.classList.add('static-blueprint');
 
                 row.onclick = (e) => {
                     e.stopPropagation();
-                    navigateTo('template', t.id);
+                    navigateTo('blueprint', t.id);
                 };
 
                 const mid = document.createElement('div');
@@ -2876,7 +3243,7 @@
                         e.stopPropagation();  // Prevent row click
 
                         if (isRootBlueprintId(t.id)) {
-                            alert('Cannot delete root template');
+                            alert('Cannot delete root blueprint');
                             return;
                         }
 
@@ -2888,27 +3255,27 @@
                         if (instances.length > 0) {
                             const instanceList = instances.map(inst => {
                                 const parent = findInstanceById(inst._parent);
-                                const parentTpl = parent ? findBlueprintById(parent.templateId) : null;
-                                const containerField = parentTpl?.fields.find(f => f.id === inst._parentField);
+                                const parentBlueprint = parent ? findBlueprintById(parent.templateId) : null;
+                                const containerField = parentBlueprint?.fields.find(f => f.id === inst._parentField);
 
                                 const location = containerField ?
-                                    `${parentTpl.name}.${containerField.name}` :
+                                    `${parentBlueprint.name}.${containerField.name}` :
                                     'Unknown location';
 
                                 return `  • Instance ${inst.id.slice(0, 8)} in ${location}`;
                             }).join('\n');
 
                             alert(
-                                `Cannot delete template ${t.name}\n\n` +
+                                `Cannot delete blueprint ${t.name}\n\n` +
                                 `${instances.length} instance(s) still exist:\n\n${instanceList}\n\n` +
-                                `Delete all instances first, then delete the template.`
+                                `Delete all instances first, then delete the blueprint.`
                             );
                             return;
                         }
 
-                        if (confirm(`Delete template ${t.name}?`)) {
+                        if (confirm(`Delete blueprint ${t.name}?`)) {
                             pushUndo();
-                            state.blueprints = state.blueprints.filter(tpl => tpl.id !== t.id);
+                            state.blueprints = state.blueprints.filter(blueprint => blueprint.id !== t.id);
                             save();
                             renderAll();
                         }
@@ -2932,7 +3299,7 @@
             container.innerHTML = '';
 
             if (!selected.id) {
-                container.innerHTML = '<div class="muted">Select a template or instance to edit.</div>';
+                container.innerHTML = '<div class="muted">Select a blueprint or instance to edit.</div>';
                 return;
             }
 
@@ -2946,7 +3313,7 @@
                 '📋 Editing Instance (Hierarchy)' : '📚 Editing Blueprint (Library)';
             wrapper.appendChild(modeIndicator);
 
-            if (selected.kind === 'template') {
+            if (selected.kind === 'blueprint') {
                 renderBlueprintEditor(wrapper);
             } else if (selected.kind === 'instance') {
                 renderInstanceEditor(wrapper);
@@ -2960,15 +3327,15 @@
  * Adds/removes .has-default class and tooltips based on current staticValues.
  */
         function updateFieldIndicators() {
-            const tpl = findBlueprintById(selected.id);
-            if (!tpl || selected.kind !== 'template') return;
+            const blueprint = findBlueprintById(selected.id);
+            if (!blueprint || selected.kind !== 'blueprint') return;
 
             // Find all field definition rows
             const fieldDefs = document.querySelectorAll('.field-def');
 
             fieldDefs.forEach((fd, idx) => {
-                if (idx >= tpl.fields.length) return;
-                const field = tpl.fields[idx];
+                if (idx >= blueprint.fields.length) return;
+                const field = blueprint.fields[idx];
 
                 // Only update primitive fields
                 if (field.fieldKind !== FIELD_KIND.PRIMITIVE) {
@@ -2978,15 +3345,15 @@
                 }
 
                 // Check if field has a non-empty default value
-                const hasDefault = tpl.isStatic &&
-                    tpl.staticValues &&
-                    tpl.staticValues[field.id] !== undefined &&
-                    tpl.staticValues[field.id] !== null &&
-                    tpl.staticValues[field.id] !== '';
+                const hasDefault = blueprint.isStatic &&
+                    blueprint.staticValues &&
+                    blueprint.staticValues[field.id] !== undefined &&
+                    blueprint.staticValues[field.id] !== null &&
+                    blueprint.staticValues[field.id] !== '';
 
                 if (hasDefault) {
                     fd.classList.add('has-default');
-                    const defaultValue = tpl.staticValues[field.id];
+                    const defaultValue = blueprint.staticValues[field.id];
                     const displayValue = typeof defaultValue === 'number' ? defaultValue : `"${defaultValue}"`;
                     fd.title = `Default value: ${displayValue}`;
                 } else {
@@ -2997,8 +3364,8 @@
         }
 
         function renderBlueprintEditor(wrapper) {
-            const tpl = findBlueprintById(selected.id);
-            if (!tpl) {
+            const blueprint = findBlueprintById(selected.id);
+            if (!blueprint) {
                 wrapper.innerHTML = '<div class="muted">Blueprint not found.</div>';
                 return;
             }
@@ -3009,10 +3376,10 @@
             const nameLabel = document.createElement('label');
             nameLabel.textContent = 'Blueprint Name';
             const nameInput = document.createElement('input');
-            nameInput.value = tpl.name;
-            nameInput.disabled = isRootBlueprintId(tpl.id);
+            nameInput.value = blueprint.name;
+            nameInput.disabled = isRootBlueprintId(blueprint.id);
             nameInput.onfocus = () => pushUndo();
-            nameInput.oninput = () => { tpl.name = nameInput.value; save(); };
+            nameInput.oninput = () => { blueprint.name = nameInput.value; save(); };
             nameInput.onblur = () => { save(); renderAll(); };
 
             wrap.appendChild(nameLabel);
@@ -3024,7 +3391,7 @@
 
             const typeSelect = document.createElement('select');
             typeSelect.classList.add('valueInputDark');
-            typeSelect.disabled = isRootBlueprintId(tpl.id);
+            typeSelect.disabled = isRootBlueprintId(blueprint.id);
 
             // Gather existing types (excluding Root)
             const existingTypes = Array.from(new Set(
@@ -3053,7 +3420,7 @@
             typeSelect.appendChild(newOpt);
 
             // Set current value
-            typeSelect.value = tpl.type;
+            typeSelect.value = blueprint.type;
 
             // Handle selection change
             typeSelect.onchange = () => {
@@ -3061,15 +3428,15 @@
                     const newType = prompt('Enter new type name:');
                     if (newType && newType.trim()) {
                         pushUndo();
-                        tpl.type = newType.trim();
+                        blueprint.type = newType.trim();
                         save();
                         renderAll();
                     } else {
-                        typeSelect.value = tpl.type; // Revert if cancelled
+                        typeSelect.value = blueprint.type; // Revert if cancelled
                     }
                 } else {
                     pushUndo();
-                    tpl.type = typeSelect.value;
+                    blueprint.type = typeSelect.value;
                     save();
                     renderAll();
                 }
@@ -3081,12 +3448,12 @@
             wrap.appendChild(typeSelect);
 
             // ============================================================================
-            // STATIC TEMPLATE DEFAULTS SECTION
+            // STATIC BLUEPRINT DEFAULTS SECTION
             // ============================================================================
 
             // HARDENING: Ensure staticValues exists
-            if (!tpl.staticValues) {
-                tpl.staticValues = {};
+            if (!blueprint.staticValues) {
+                blueprint.staticValues = {};
             }
 
             // Static defaults toggle and editor
@@ -3107,7 +3474,7 @@
             const staticToggle = document.createElement('input');
             staticToggle.type = 'checkbox';
             staticToggle.id = 'staticToggle';
-            staticToggle.checked = !!tpl.isStatic;
+            staticToggle.checked = !!blueprint.isStatic;
             staticToggle.style.cursor = 'pointer';
 
             const staticLabel = document.createElement('label');
@@ -3131,14 +3498,14 @@
 
             // Container for default value inputs
             const defaultsContainer = document.createElement('div');
-            defaultsContainer.style.display = tpl.isStatic ? 'block' : 'none';
+            defaultsContainer.style.display = blueprint.isStatic ? 'block' : 'none';
 
             // Function to render default value inputs
             function renderDefaultInputs() {
                 try {
                     defaultsContainer.innerHTML = '';
 
-                    if (!tpl || !tpl.fields) {
+                    if (!blueprint || !blueprint.fields) {
                         const error = document.createElement('div');
                         error.className = 'muted';
                         error.textContent = 'Blueprint not found or has no fields.';
@@ -3147,11 +3514,11 @@
                     }
 
                     // HARDENING: Ensure staticValues exists
-                    if (!tpl.staticValues) {
-                        tpl.staticValues = {};
+                    if (!blueprint.staticValues) {
+                        blueprint.staticValues = {};
                     }
 
-                    const primitiveFields = tpl.fields.filter(f => f && f.fieldKind === FIELD_KIND.PRIMITIVE);
+                    const primitiveFields = blueprint.fields.filter(f => f && f.fieldKind === FIELD_KIND.PRIMITIVE);
 
                     if (primitiveFields.length === 0) {
                         const noFields = document.createElement('div');
@@ -3177,7 +3544,7 @@
                         fieldInput.type = field.primitiveType === PRIMITIVE_TYPE.NUMBER ? 'number' : 'text';
 
                         // HARDENING: Safe access to staticValues with fallback
-                        const currentValue = tpl.staticValues[field.id];
+                        const currentValue = blueprint.staticValues[field.id];
                         const defaultValue = field.primitiveType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
                         fieldInput.value = (currentValue !== undefined && currentValue !== null) ? currentValue : defaultValue;
 
@@ -3187,14 +3554,14 @@
                         fieldInput.onfocus = () => pushUndo();
                         fieldInput.oninput = () => {
                             // HARDENING: Ensure staticValues exists before writing
-                            if (!tpl.staticValues) {
-                                tpl.staticValues = {};
+                            if (!blueprint.staticValues) {
+                                blueprint.staticValues = {};
                             }
 
                             if (field.primitiveType === PRIMITIVE_TYPE.NUMBER) {
-                                tpl.staticValues[field.id] = fieldInput.value === '' ? 0 : Number(fieldInput.value);
+                                blueprint.staticValues[field.id] = fieldInput.value === '' ? 0 : Number(fieldInput.value);
                             } else {
-                                tpl.staticValues[field.id] = fieldInput.value;
+                                blueprint.staticValues[field.id] = fieldInput.value;
                             }
                             save();
 
@@ -3214,7 +3581,7 @@
 
                         for (const instId in state.instances) {
                             const inst = state.instances[instId];
-                            if (inst.templateId !== tpl.id) continue;
+                            if (inst.templateId !== blueprint.id) continue;
 
                             totalInstances++;
 
@@ -3226,14 +3593,14 @@
                         }
 
                         if (totalInstances === 0) {
-                            fieldHint.textContent = `New ${tpl.name || 'instances'} will start with this value`;
+                            fieldHint.textContent = `New ${blueprint.name || 'instances'} will start with this value`;
                         } else {
                             const parts = [];
                             if (usingDefault > 0) parts.push(`${usingDefault} using default`);
                             if (overridden > 0) parts.push(`${overridden} overridden`);
 
                             fieldHint.textContent = `📊 ${parts.join(', ')} (${totalInstances} total)`;
-                            fieldHint.title = `${usingDefault} instance(s) will use this template default\n${overridden} instance(s) have custom values`;
+                            fieldHint.title = `${usingDefault} instance(s) will use this blueprint default\n${overridden} instance(s) have custom values`;
                         }
 
                         fieldRow.appendChild(fieldLabel);
@@ -3253,18 +3620,18 @@
             // Toggle handler
             staticToggle.onchange = () => {
                 pushUndo();
-                tpl.isStatic = staticToggle.checked;
+                blueprint.isStatic = staticToggle.checked;
 
                 // HARDENING: Initialize staticValues if enabling
-                if (tpl.isStatic && !tpl.staticValues) {
-                    tpl.staticValues = {};
+                if (blueprint.isStatic && !blueprint.staticValues) {
+                    blueprint.staticValues = {};
                 }
 
                 // Show/hide defaults container
-                defaultsContainer.style.display = tpl.isStatic ? 'block' : 'none';
+                defaultsContainer.style.display = blueprint.isStatic ? 'block' : 'none';
 
                 // Render inputs if showing
-                if (tpl.isStatic) {
+                if (blueprint.isStatic) {
                     renderDefaultInputs();
                 }
 
@@ -3282,22 +3649,22 @@
             const fieldList = document.createElement('div');
             fieldList.className = 'field-list';
 
-            for (let fieldIdx = 0; fieldIdx < tpl.fields.length; fieldIdx++) {
-                const f = tpl.fields[fieldIdx];
+            for (let fieldIdx = 0; fieldIdx < blueprint.fields.length; fieldIdx++) {
+                const f = blueprint.fields[fieldIdx];
                 const fd = document.createElement('div');
                 fd.className = 'field-def';
 
                 // STATIC UI: Add visual indicator for fields with defaults
-                if (tpl.isStatic &&
+                if (blueprint.isStatic &&
                     f.fieldKind === FIELD_KIND.PRIMITIVE &&
-                    tpl.staticValues &&
-                    tpl.staticValues[f.id] !== undefined &&
-                    tpl.staticValues[f.id] !== null &&
-                    tpl.staticValues[f.id] !== '') {
+                    blueprint.staticValues &&
+                    blueprint.staticValues[f.id] !== undefined &&
+                    blueprint.staticValues[f.id] !== null &&
+                    blueprint.staticValues[f.id] !== '') {
                     fd.classList.add('has-default');
 
                     // Add tooltip showing default value
-                    const defaultValue = tpl.staticValues[f.id];
+                    const defaultValue = blueprint.staticValues[f.id];
                     const displayValue = typeof defaultValue === 'number' ? defaultValue : `"${defaultValue}"`;
                     fd.title = `Default value: ${displayValue}`;
                 }
@@ -3312,7 +3679,7 @@
                 fd.ondragstart = (e) => {
                     e.dataTransfer.setData('text/plain', JSON.stringify({
                         type: 'field-reorder',
-                        templateId: tpl.id,
+                        templateId: blueprint.id,
                         fieldIndex: fieldIdx
                     }));
                 };
@@ -3328,10 +3695,10 @@
                     fd.classList.remove('drag-over');
                     try {
                         const payload = JSON.parse(e.dataTransfer.getData('text/plain'));
-                        if (payload.type === 'field-reorder' && payload.templateId === tpl.id) {
+                        if (payload.type === 'field-reorder' && payload.templateId === blueprint.id) {
                             pushUndo();
-                            const [removed] = tpl.fields.splice(payload.fieldIndex, 1);
-                            tpl.fields.splice(fieldIdx, 0, removed);
+                            const [removed] = blueprint.fields.splice(payload.fieldIndex, 1);
+                            blueprint.fields.splice(fieldIdx, 0, removed);
                             save();
                             renderAll();
                         }
@@ -3351,7 +3718,7 @@
 
                 // Field kind
                 const kindSel = document.createElement('select');
-                [FIELD_KIND.PRIMITIVE, FIELD_KIND.CARD_REF, FIELD_KIND.LIST_OF_CARDS, FIELD_KIND.ENTITY_REF, FIELD_KIND.LIST_ENTITY_REF].forEach(k => {
+                [FIELD_KIND.PRIMITIVE, FIELD_KIND.INSTANTIATOR, FIELD_KIND.INSTANTIATOR_LIST, FIELD_KIND.INSTANCE_REFERENCE, FIELD_KIND.INSTANCE_REFERENCE_LIST].forEach(k => {
 
                     const o = document.createElement('option');
                     o.value = k;
@@ -3371,10 +3738,10 @@
 
                     for (const instId in state.instances) {
                         const inst = state.instances[instId];
-                        if (inst.templateId === tpl.id) {
+                        if (inst.templateId === blueprint.id) {
                             const val = inst.fieldValues[f.id];
 
-                            if (oldKind === FIELD_KIND.LIST_ENTITY_REF && newKind === FIELD_KIND.CARD_REF) {
+                            if (oldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST && newKind === FIELD_KIND.INSTANTIATOR) {
                                 if (Array.isArray(val) && val.length > 0) {
                                     hasData = true;
                                     affectedCount++;
@@ -3396,27 +3763,27 @@
                         delete f.cardTypeFilter;
                         delete f.fieldMode;
                         f.primitiveType = f.primitiveType || PRIMITIVE_TYPE.TEXT;
-                    } else if (f.fieldKind === FIELD_KIND.ENTITY_REF || f.fieldKind === FIELD_KIND.LIST_ENTITY_REF) {
+                    } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE || f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
                         delete f.primitiveType;
                         delete f.fieldMode;
                         f.cardTypeFilter = f.cardTypeFilter || 'Generic';
                     } else {
                         delete f.primitiveType;
                         f.cardTypeFilter = f.cardTypeFilter || 'Generic';
-                        f.fieldMode = f.fieldMode || FIELD_MODE.CONTAIN;
+                        f.fieldMode = f.fieldMode;
                     }
 
                     // HARDENING: Normalize all instance field values to match new kind
                     for (const instId in state.instances) {
                         const inst = state.instances[instId];
-                        if (inst.templateId !== tpl.id) continue;
+                        if (inst.templateId !== blueprint.id) continue;
 
                         const val = inst.fieldValues[f.id];
 
                         // LIST → SINGLE
                         if (
-                            oldKind === FIELD_KIND.LIST_ENTITY_REF &&
-                            newKind === FIELD_KIND.CARD_REF
+                            oldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST &&
+                            newKind === FIELD_KIND.INSTANTIATOR
                         ) {
                             if (Array.isArray(val) && val.length > 0) {
                                 hasData = true;
@@ -3426,7 +3793,7 @@
 
                         // ENTITY/LIST → PRIMITIVE
                         else if (
-                            (oldKind === FIELD_KIND.ENTITY_REF || oldKind === FIELD_KIND.LIST_ENTITY_REF) &&
+                            (oldKind === FIELD_KIND.INSTANCE_REFERENCE || oldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) &&
                             newKind === FIELD_KIND.PRIMITIVE
                         ) {
                             if (Array.isArray(val) && val.length > 0) {
@@ -3438,10 +3805,10 @@
                         // PRIMITIVE → ANY REF
                         else if (
                             oldKind === FIELD_KIND.PRIMITIVE &&
-                            (newKind === FIELD_KIND.CARD_REF ||
-                                newKind === FIELD_KIND.LIST_OF_CARDS ||
-                                newKind === FIELD_KIND.ENTITY_REF ||
-                                newKind === FIELD_KIND.LIST_ENTITY_REF)
+                            (newKind === FIELD_KIND.INSTANTIATOR ||
+                                newKind === FIELD_KIND.INSTANTIATOR_LIST ||
+                                newKind === FIELD_KIND.INSTANCE_REFERENCE ||
+                                newKind === FIELD_KIND.INSTANCE_REFERENCE_LIST)
                         ) {
                             if (val !== null && val !== '' && val !== 0) {
                                 hasData = true;
@@ -3451,14 +3818,14 @@
 
                         // REF ↔ REF transitions
                         else if (
-                            (oldKind === FIELD_KIND.CARD_REF ||
-                                oldKind === FIELD_KIND.LIST_OF_CARDS ||
-                                oldKind === FIELD_KIND.ENTITY_REF ||
-                                oldKind === FIELD_KIND.LIST_ENTITY_REF) &&
-                            (newKind === FIELD_KIND.CARD_REF ||
-                                newKind === FIELD_KIND.LIST_OF_CARDS ||
-                                newKind === FIELD_KIND.ENTITY_REF ||
-                                newKind === FIELD_KIND.LIST_ENTITY_REF)
+                            (oldKind === FIELD_KIND.INSTANTIATOR ||
+                                oldKind === FIELD_KIND.INSTANTIATOR_LIST ||
+                                oldKind === FIELD_KIND.INSTANCE_REFERENCE ||
+                                oldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) &&
+                            (newKind === FIELD_KIND.INSTANTIATOR ||
+                                newKind === FIELD_KIND.INSTANTIATOR_LIST ||
+                                newKind === FIELD_KIND.INSTANCE_REFERENCE ||
+                                newKind === FIELD_KIND.INSTANCE_REFERENCE_LIST)
                         ) {
                             if (
                                 (typeof val === 'string' && val) ||
@@ -3473,17 +3840,17 @@
                     // CRITICAL: Initialize field values for new kind
                     for (const instId in state.instances) {
                         const inst = state.instances[instId];
-                        if (inst.templateId !== tpl.id) continue;
+                        if (inst.templateId !== blueprint.id) continue;
 
                         // Initialize based on new field kind
                         if (newKind === FIELD_KIND.PRIMITIVE) {
                             // Primitive: empty string or 0
                             const primType = f.primitiveType || PRIMITIVE_TYPE.TEXT;
                             inst.fieldValues[f.id] = primType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
-                        } else if (newKind === FIELD_KIND.LIST_OF_CARDS || newKind === FIELD_KIND.LIST_ENTITY_REF) {
+                        } else if (newKind === FIELD_KIND.INSTANTIATOR_LIST || newKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
                             // Lists: empty array
                             inst.fieldValues[f.id] = [];
-                        } else if (newKind === FIELD_KIND.CARD_REF || newKind === FIELD_KIND.ENTITY_REF) {
+                        } else if (newKind === FIELD_KIND.INSTANTIATOR || newKind === FIELD_KIND.INSTANCE_REFERENCE) {
                             // Single references: null
                             inst.fieldValues[f.id] = null;
                         }
@@ -3511,7 +3878,7 @@
                         renderAll();
                     };
                     fd.appendChild(psel);
-                } else if (f.fieldKind !== FIELD_KIND.ENTITY_REF && f.fieldKind !== FIELD_KIND.LIST_ENTITY_REF) {  // ← MODIFIED
+                } else if (f.fieldKind !== FIELD_KIND.INSTANCE_REFERENCE && f.fieldKind !== FIELD_KIND.INSTANCE_REFERENCE_LIST) {  // ← MODIFIED
                     // instantiator/instantiatorList: type filter + mode
                     const filterSel = document.createElement('select');
                     const types = Array.from(new Set(state.blueprints.map(tt => tt.type || 'Generic'))).filter(t => t !== 'Root');
@@ -3530,7 +3897,7 @@
                     };
                     fd.appendChild(filterSel);
 
-                    const modeSel = document.createElement('select');
+                    /*const modeSel = document.createElement('select');
                     modeSel.title = 'Contain: owns children | Reference: links to existing';
                     const containOpt = document.createElement('option');
                     containOpt.value = FIELD_MODE.CONTAIN;
@@ -3547,7 +3914,7 @@
                         save();
                         renderAll();
                     };
-                    fd.appendChild(modeSel);
+                    fd.appendChild(modeSel);*/
                 } else {
                     // instanceReference or instanceReferenceList: just type filter
                     const filterSel = document.createElement('select');
@@ -3574,7 +3941,7 @@
                 rm.textContent = '×';
                 rm.onclick = (e) => {
                     e.stopPropagation();
-                    if (confirm(`Remove field ${f.name}?`)) removeField(tpl.id, f.id);
+                    if (confirm(`Remove field ${f.name}?`)) removeField(blueprint.id, f.id);
                 };
                 fd.appendChild(rm);
 
@@ -3594,27 +3961,27 @@
                     fieldKind: FIELD_KIND.PRIMITIVE,
                     primitiveType: PRIMITIVE_TYPE.TEXT
                 };
-                addField(tpl.id, newF);
+                addField(blueprint.id, newF);
             };
 
             wrap.appendChild(addBtn);
 
-            // Delete template button
-            if (!isRootBlueprintId(tpl.id)) {
+            // Delete blueprint button
+            if (!isRootBlueprintId(blueprint.id)) {
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'btn small danger';
                 deleteBtn.textContent = '🗑️ Delete Blueprint';
                 deleteBtn.style.marginTop = '16px';
 
                 deleteBtn.onclick = () => {
-                    if (isRootBlueprintId(tpl.id)) {
-                        alert('Cannot delete root template');
+                    if (isRootBlueprintId(blueprint.id)) {
+                        alert('Cannot delete root blueprint');
                         return;
                     }
 
                     // HARD CONTRACT: Block deletion if instances exist
                     const instances = Object.values(state.instances).filter(inst =>
-                        inst.templateId === tpl.id
+                        inst.templateId === blueprint.id
                     );
 
                     if (instances.length > 0) {
@@ -3622,9 +3989,9 @@
                         // ... build instanceList ...
 
                         alert(
-                            `Cannot delete template ${tpl.name}\n\n` +
+                            `Cannot delete blueprint ${blueprint.name}\n\n` +
                             `${instances.length} instance(s) still exist:\n\n${instanceList}\n\n` +
-                            `Delete all instances first, then delete the template.`
+                            `Delete all instances first, then delete the blueprint.`
                         );
 
                         console.log('🚫 RETURNED - deletion blocked');
@@ -3634,10 +4001,10 @@
                     console.log('✅ NO INSTANCES - showing confirm');
 
                     // No instances - safe to delete
-                    if (confirm(`Delete template ${tpl.name}?`)) {
+                    if (confirm(`Delete blueprint ${blueprint.name}?`)) {
                         console.log('✅ CONFIRMED - deleting');
                         pushUndo();
-                        state.blueprints = state.blueprints.filter(t => t.id !== tpl.id);
+                        state.blueprints = state.blueprints.filter(t => t.id !== blueprint.id);
                         save();
                         renderAll();
                     }
@@ -3674,8 +4041,8 @@
             }
             visited.add(inst.id);
 
-            const tpl = findBlueprintById(inst.templateId);
-            if (!tpl) {
+            const blueprint = findBlueprintById(inst.templateId);
+            if (!blueprint) {
                 // Blueprint was deleted - render error state
                 const errorBlueprint = document.createElement('div');
                 errorBlueprint.className = 'instance-card';
@@ -3685,20 +4052,20 @@
             ⚠️ Blueprint Deleted
         </div>
         <div class="muted" style="padding: 12px;">
-            Instance ${inst.id.slice(0, 8)} references deleted template ${inst.templateId.slice(0, 8)}.
+            Instance ${inst.id.slice(0, 8)} references deleted blueprint ${inst.templateId.slice(0, 8)}.
             This instance cannot be edited.
         </div>
     `;
                 return errorBlueprint;
             }
-            const templateDeleted = !tpl;
-            const templateData = tpl || { name: '', type: '', fields: [] };
+            const templateDeleted = !blueprint;
+            const templateData = blueprint || { name: '', type: '', fields: [] };
 
             const card = document.createElement('div');
             card.className = 'instance-card';
             if (origin === 'static') card.classList.add('static-child');
             if (origin === 'reference') card.classList.add('reference-child');
-            if (templateDeleted) card.classList.add('deleted-template');
+            if (templateDeleted) card.classList.add('deleted-blueprint');
 
             // HARDENING: Mark static ghosts (should not appear in runtime)
             if (isStaticInstanceShape(inst)) {
@@ -3754,7 +4121,7 @@
                 hintSpan.textContent = 'Blueprint was deleted. Instance data preserved.';
                 headerLeft.appendChild(hintSpan);
             } else {
-                // Normal template rendering
+                // Normal blueprint rendering
                 nameSpan.textContent = templateData.name;
                 headerLeft.appendChild(nameSpan);
 
@@ -3768,7 +4135,7 @@
                 const lockIcon = document.createElement('span');
                 lockIcon.className = 'lock-icon';
                 lockIcon.textContent = '🔒';
-                lockIcon.title = 'Defined by template';
+                lockIcon.title = 'Defined by blueprint';
                 headerLeft.appendChild(lockIcon);
             }
 
@@ -3788,7 +4155,7 @@
             editBtn.textContent = 'Edit Blueprint';
             editBtn.onclick = (e) => {
                 e.stopPropagation();
-                navigateTo('template', inst.templateId);
+                navigateTo('blueprint', inst.templateId);
             };
             headerActions.appendChild(editBtn);
 
@@ -3810,11 +4177,11 @@
                         const referencingInstances = [];
                         for (const checkId in state.instances) {
                             const checkInst = state.instances[checkId];
-                            const checkTpl = findBlueprintById(checkInst.templateId);
-                            if (!checkTpl) continue;
+                            const checkBlueprint = findBlueprintById(checkInst.templateId);
+                            if (!checkBlueprint) continue;
 
-                            for (const checkField of checkTpl.fields) {
-                                if (isEntityRefField(checkField)) {
+                            for (const checkField of checkBlueprint.fields) {
+                                if (isInstanceReferenceField(checkField)) {
                                     const val = checkInst.fieldValues[checkField.id];
                                     if (Array.isArray(val) && val.includes(inst.id)) {
                                         referencingInstances.push({
@@ -3825,15 +4192,15 @@
                                     }
                                 }
 
-                                if (isReferenceField(checkField)) {
+                                if (true) {
                                     const val = checkInst.fieldValues[checkField.id];
-                                    if (checkField.fieldKind === FIELD_KIND.CARD_REF && val === inst.id) {
+                                    if (checkField.fieldKind === FIELD_KIND.INSTANTIATOR && val === inst.id) {
                                         referencingInstances.push({
                                             instanceId: checkId,
                                             fieldName: checkField.name,
                                             fieldKind: checkField.fieldKind
                                         });
-                                    } else if (checkField.fieldKind === FIELD_KIND.LIST_OF_CARDS && Array.isArray(val) && val.includes(inst.id)) {
+                                    } else if (checkField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val) && val.includes(inst.id)) {
                                         referencingInstances.push({
                                             instanceId: checkId,
                                             fieldName: checkField.name,
@@ -3858,12 +4225,12 @@
                     if (confirm(confirmMsg)) {
                         pushUndo();
 
-                        if (parentField.fieldKind === FIELD_KIND.CARD_REF) {
+                        if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR) {
                             parentInst.fieldValues[parentField.id] = null;
-                        } else if (parentField.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                        } else if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                             const arr = parentInst.fieldValues[parentField.id];
                             if (Array.isArray(arr)) {
-                                if (isReferenceField(parentField)) {
+                                if (true) {
                                     // HARDENING: Reference removal only
                                     parentInst.fieldValues[parentField.id] = arr.filter(id => id !== inst.id);
                                 } else {
@@ -3887,11 +4254,11 @@
             card.appendChild(header);
 
             // STATIC FEATURE: Reset all overrides button
-            if (tpl.isStatic) {
+            if (blueprint.isStatic) {
                 // Count how many fields are overridden
-                const overriddenFields = tpl.fields.filter(f =>
+                const overriddenFields = blueprint.fields.filter(f =>
                     f.fieldKind === FIELD_KIND.PRIMITIVE &&
-                    tpl.staticValues?.[f.id] !== undefined &&
+                    blueprint.staticValues?.[f.id] !== undefined &&
                     inst.fieldValues[f.id] !== undefined
                 );
 
@@ -3913,11 +4280,11 @@
                     const resetAllBtn = document.createElement('button');
                     resetAllBtn.className = 'btn small';
                     resetAllBtn.textContent = '⎌ Reset All to Defaults';
-                    resetAllBtn.title = `Revert ${overriddenFields.length} field(s) to template defaults`;
+                    resetAllBtn.title = `Revert ${overriddenFields.length} field(s) to blueprint defaults`;
                     resetAllBtn.onclick = () => {
                         const fieldNames = overriddenFields.map(f => f.name).join(', ');
                         if (confirm(
-                            `Reset ${overriddenFields.length} field(s) to template defaults?\n\n` +
+                            `Reset ${overriddenFields.length} field(s) to blueprint defaults?\n\n` +
                             `Fields: ${fieldNames}\n\n` +
                             `This can be undone.`
                         )) {
@@ -3948,11 +4315,11 @@
                 label.className = 'field-key';
                 label.textContent = f.name;
 
-                if (isFieldStatic(tpl, f)) {
+                if (isFieldStatic(blueprint, f)) {
                     const lockIcon = document.createElement('span');
                     lockIcon.className = 'lock-icon';
                     lockIcon.textContent = '🔒';
-                    lockIcon.title = 'Defined by template';
+                    lockIcon.title = 'Defined by blueprint';
                     lockIcon.style.marginLeft = '4px';
                     label.appendChild(lockIcon);
                 }
@@ -3963,12 +4330,12 @@
 
                 // Render field based on kind
                 if (f.fieldKind === FIELD_KIND.PRIMITIVE) {
-                    const isStaticBlueprint = tpl.isStatic && tpl.staticValues?.[f.id] !== undefined;
+                    const isStaticBlueprint = blueprint.isStatic && blueprint.staticValues?.[f.id] !== undefined;
                     const isOverridden = inst.fieldValues[f.id] !== undefined;
 
                     if (isStaticBlueprint && !isOverridden) {
-                        // STATE: Using template default (not overridden)
-                        const defaultValue = tpl.staticValues[f.id];
+                        // STATE: Using blueprint default (not overridden)
+                        const defaultValue = blueprint.staticValues[f.id];
 
                         const defaultDisplay = document.createElement('div');
                         defaultDisplay.style.display = 'flex';
@@ -3977,7 +4344,7 @@
                         defaultDisplay.style.marginBottom = '8px';
 
                         const valueText = document.createElement('div');
-                        valueText.textContent = String(defaultValue) + ' (template default)';
+                        valueText.textContent = String(defaultValue) + ' (blueprint default)';
                         valueText.className = 'muted';
                         valueText.style.flex = '1';
 
@@ -3987,7 +4354,7 @@
                         overrideBtn.title = 'Customize this value for this instance';
                         overrideBtn.onclick = () => {
                             pushUndo();
-                            // Copy template default to instance (makes it editable)
+                            // Copy blueprint default to instance (makes it editable)
                             inst.fieldValues[f.id] = defaultValue;
                             save();
                             renderAll();
@@ -4013,10 +4380,10 @@
                         templateLink.style.fontSize = '10px';
                         templateLink.style.padding = '2px 6px';
                         templateLink.textContent = '🔗 Edit defaults';
-                        templateLink.title = 'Go to template editor to change default values';
+                        templateLink.title = 'Go to blueprint editor to change default values';
                         templateLink.onclick = (e) => {
                             e.stopPropagation();
-                            navigateTo('template', tpl.id);
+                            navigateTo('blueprint', blueprint.id);
                         };
 
                         hintRow.appendChild(hint);
@@ -4024,7 +4391,7 @@
                         control.appendChild(hintRow);
 
                     } else {
-                        // STATE: Normal input (no template default, or overridden)
+                        // STATE: Normal input (no blueprint default, or overridden)
                         const inp = document.createElement('input');
                         inp.type = f.primitiveType === PRIMITIVE_TYPE.NUMBER ? 'number' : 'text';
 
@@ -4064,17 +4431,17 @@
 
                             const originalText = document.createElement('span');
                             originalText.className = 'override-original';
-                            originalText.textContent = `Blueprint default: ${tpl.staticValues[f.id]}`;
+                            originalText.textContent = `Blueprint default: ${blueprint.staticValues[f.id]}`;
 
                             const revertBtn = document.createElement('button');
                             revertBtn.className = 'btn small';
                             revertBtn.textContent = '⎌ Revert';
-                            revertBtn.title = 'Restore template default';
+                            revertBtn.title = 'Restore blueprint default';
                             revertBtn.onclick = () => {
                                 const currentValue = inst.fieldValues[f.id];
-                                const defaultValue = tpl.staticValues[f.id];
+                                const defaultValue = blueprint.staticValues[f.id];
 
-                                if (confirm(`Replace "${currentValue}" with template default "${defaultValue}"?`)) {
+                                if (confirm(`Replace "${currentValue}" with blueprint default "${defaultValue}"?`)) {
                                     pushUndo();
                                     delete inst.fieldValues[f.id];
                                     save();
@@ -4088,8 +4455,8 @@
                             control.appendChild(overrideIndicator);
                         }
                     }
-                } else if (f.fieldKind === FIELD_KIND.ENTITY_REF) {
-                    if (isFieldStatic(tpl, f)) {
+                } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
+                    if (isFieldStatic(blueprint, f)) {
                         const txt = document.createElement('div');
                         txt.textContent = '(static instanceReference)';
                         txt.className = 'muted';
@@ -4097,36 +4464,53 @@
                     } else {
                         const ids = inst.fieldValues?.[f.id] || [];
 
-                        // Render existing chips
-                        const chipsContainer = document.createElement('div');
-                        chipsContainer.style.display = 'flex';
-                        chipsContainer.style.flexWrap = 'wrap';
-                        chipsContainer.style.gap = '4px';
-                        chipsContainer.style.marginBottom = '6px';
+                        // Render existing chips with expandable containers
+                        const chipsOuterContainer = document.createElement('div');
+                        chipsOuterContainer.style.marginBottom = '6px';
 
                         for (const refId of ids) {
+                            // Container for chip + expanded view
+                            const chipContainer = document.createElement('div');
+                            chipContainer.className = 'chip-container';
+
                             const chip = document.createElement('div');
                             chip.className = 'entityref-chip';
+                            chip.style.display = 'flex';
+                            chip.style.alignItems = 'center';
+
                             const target = findInstanceById(refId);
                             if (!target) chip.classList.add('broken');
 
-                            const targetTpl = target ? findBlueprintById(target.templateId) : null;
+                            const targetBlueprint = target ? findBlueprintById(target.templateId) : null;
+                            const isExpanded = isChipExpanded(inst.id, f.id, refId);
+
+                            // Twisty (expand/collapse indicator)
+                            const twisty = document.createElement('span');
+                            twisty.className = 'chip-twisty';
+                            if (target) {
+                                twisty.classList.add('expandable');
+                                twisty.textContent = isExpanded ? '▾' : '▸';
+                                twisty.title = isExpanded ? 'Click to collapse' : 'Click to expand';
+                                twisty.onclick = (e) => {
+                                    e.stopPropagation();
+                                    toggleChipExpansion(inst.id, f.id, refId);
+                                };
+                            } else {
+                                twisty.textContent = '⚠️';
+                                twisty.title = 'Broken reference';
+                            }
+
+                            chip.appendChild(twisty);
 
                             const chipContent = document.createElement('span');
 
-                            // Chip labeling: template name + ID
-                            let chipLabel = '???';
-                            if (target && targetTpl) {
-                                chipLabel = `${targetTpl.name} ${refId.slice(0, 6)}`;
-                            } else {
-                                chipLabel = 'Deleted instance';
-                            }
-
+                            // Chip labeling: use smart labels
+                            const chipLabel = getInstanceLabel(refId);
                             chipContent.textContent = chipLabel;
                             chipContent.style.cursor = target ? 'pointer' : 'default';
                             chipContent.style.flex = '1';
 
-                            // PHASE 1: Add click navigation to chip content
+                            // Navigate on click (only on label, not twisty)
                             if (target) {
                                 chipContent.onclick = (e) => {
                                     e.stopPropagation();
@@ -4140,6 +4524,18 @@
                                 };
                             }
 
+                            chip.appendChild(chipContent);
+
+                            // Type indicator (subtle)
+                            if (target && targetBlueprint) {
+                                const typeSpan = document.createElement('span');
+                                typeSpan.className = 'muted';
+                                typeSpan.textContent = ` · ${targetBlueprint.name}`;
+                                typeSpan.style.fontSize = '11px';
+                                typeSpan.style.marginRight = '4px';
+                                chip.appendChild(typeSpan);
+                            }
+
                             // Create remove button
                             const removeBtn = document.createElement('span');
                             removeBtn.className = 'remove';
@@ -4149,42 +4545,56 @@
                                 // HARDENING: instanceReference removal only affects pointer, never deletes target
                                 pushUndo();
                                 inst.fieldValues[f.id] = ids.filter(id => id !== refId);
+
+                                // Also remove from expanded chips set
+                                expandedChips.delete(getChipKey(inst.id, f.id, refId));
+
                                 save();
                                 renderAll();
                             };
 
-                            chip.appendChild(chipContent);
                             chip.appendChild(removeBtn);
 
                             chip.title = target ?
-                                `Click to navigate to ${targetTpl.name} (${refId.slice(0, 8)})` :
+                                `${chipLabel} · ${targetBlueprint.name}\nClick label to navigate | Click ▸ to expand` :
                                 `⚠️ Broken reference to ${refId.slice(0, 8)}`;
-                            chipsContainer.appendChild(chip);
+
+                            chipContainer.appendChild(chip);
+
+                            // EXPANDED VIEW: Show instance fields
+                            if (isExpanded && target && targetBlueprint) {
+                                const expandedView = renderChipExpandedView(target, targetBlueprint, refId);
+                                chipContainer.appendChild(expandedView);
+                            }
+
+                            chipsOuterContainer.appendChild(chipContainer);
                         }
 
-                        control.appendChild(chipsContainer);
+                        control.appendChild(chipsOuterContainer);
 
-                        // Add reference button
-                        const addBtn = document.createElement('button');
-                        addBtn.className = 'btn small primary';
-                        addBtn.textContent = '🔗 Add Reference';
-                        addBtn.onclick = () => {
-                            // HARDENING: Pass current instance to exclude self and descendants
-                            showInstancePicker(f.cardTypeFilter, (selectedId) => {
-                                pushUndo();
-                                if (!ids.includes(selectedId)) {
-                                    ids.push(selectedId);
-                                    inst.fieldValues[f.id] = ids;
-                                }
-                                save();
-                                renderAll();
-                            }, inst.id);
-                        };
-                        control.appendChild(addBtn);
+                        if (ids.length === 0) {
+                            // Add reference button
+                            const addBtn = document.createElement('button');
+                            addBtn.className = 'btn small primary';
+                            addBtn.textContent = '🔗 Add Reference';
+                            addBtn.onclick = () => {
+                                // HARDENING: Pass current instance to exclude self and descendants
+                                showInstancePicker(f.cardTypeFilter, (selectedId) => {
+                                    pushUndo();
+                                    if (!ids.includes(selectedId)) {
+                                        ids.push(selectedId);
+                                        inst.fieldValues[f.id] = ids;
+                                    }
+                                    save();
+                                    renderAll();
+                                }, inst.id);
+                            };
+                            control.appendChild(addBtn);
+                        }
                     }
-                } else if (f.fieldKind === FIELD_KIND.LIST_ENTITY_REF) {
-                    // LIST_ENTITY_REF: Ordered list of entity references (reuses ENTITY_REF chip semantics)
-                    if (isFieldStatic(tpl, f)) {
+                } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
+                    // INSTANCE_REFERENCE_LIST: Ordered list of entity references (reuses INSTANCE_REFERENCE chip semantics)
+                    if (isFieldStatic(blueprint, f)) {
                         const txt = document.createElement('div');
                         txt.textContent = '(static instanceReferenceList)';
                         txt.className = 'muted';
@@ -4208,12 +4618,9 @@
                             }
                         }
 
-                        // Render existing chips (same as ENTITY_REF)
-                        const chipsContainer = document.createElement('div');
-                        chipsContainer.style.display = 'flex';
-                        chipsContainer.style.flexDirection = 'column';  // ← VERTICAL
-                        chipsContainer.style.gap = '4px';
-                        chipsContainer.style.marginBottom = '6px';
+                        // Render existing chips with expandable containers (VERTICAL)
+                        const chipsOuterContainer = document.createElement('div');
+                        chipsOuterContainer.style.marginBottom = '6px';
 
                         for (let refId of ids) {
                             // HARDENING: Ensure refId is a string (extract ID from object if needed)
@@ -4221,29 +4628,34 @@
                                 refId = refId.id; // Extract ID from instance object
                             }
                             if (typeof refId !== 'string') {
-                                console.error('Invalid refId in LIST_ENTITY_REF:', refId);
+                                console.error('Invalid refId in INSTANCE_REFERENCE_LIST:', refId);
                                 continue; // Skip invalid entries
                             }
+
+                            // Container for chip + expanded view
+                            const chipContainer = document.createElement('div');
+                            chipContainer.className = 'chip-container';
 
                             const chip = document.createElement('div');
                             chip.className = 'entityref-chip';
                             chip.style.display = 'flex';
                             chip.style.alignItems = 'center';
                             chip.style.gap = '4px';
+
                             const target = findInstanceById(refId);
                             if (!target) chip.classList.add('broken');
 
-                            const targetTpl = target ? findBlueprintById(target.templateId) : null;
+                            const targetBlueprint = target ? findBlueprintById(target.templateId) : null;
+                            const chipIndex = ids.indexOf(refId);
+                            const isExpanded = isChipExpanded(inst.id, f.id, refId);
 
-                            // STEP 6: Add drag handle
+                            // Drag handle for reordering
                             const dragHandle = document.createElement('span');
                             dragHandle.className = 'drag-handle';
                             dragHandle.textContent = '⋮⋮';
                             dragHandle.draggable = true;
                             dragHandle.style.cursor = 'grab';
                             dragHandle.title = 'Drag to reorder';
-
-                            const chipIndex = ids.indexOf(refId);
 
                             dragHandle.ondragstart = (e) => {
                                 e.stopPropagation();
@@ -4280,7 +4692,7 @@
                                 try {
                                     const data = JSON.parse(e.dataTransfer.getData('text/plain'));
 
-                                    // STEP 6: Validate same field only
+                                    // Validate same field only
                                     if (data.type !== 'list-entity-ref-reorder') return;
                                     if (data.instanceId !== inst.id) return;
                                     if (data.fieldId !== f.id) return;
@@ -4306,25 +4718,34 @@
 
                             chip.appendChild(dragHandle);
 
-                            // Create chip content wrapper (clickable)
-                            const chipContent = document.createElement('span');
-
-                            // Chip labeling: template name + ID
-                            let chipLabel = '???';
-                            if (target && targetTpl) {
-                                chipLabel = `${targetTpl.name} ${refId.slice(0, 6)}`;
+                            // Twisty (expand/collapse indicator)
+                            const twisty = document.createElement('span');
+                            twisty.className = 'chip-twisty';
+                            if (target) {
+                                twisty.classList.add('expandable');
+                                twisty.textContent = isExpanded ? '▾' : '▸';
+                                twisty.title = isExpanded ? 'Click to collapse' : 'Click to expand';
+                                twisty.onclick = (e) => {
+                                    e.stopPropagation();
+                                    toggleChipExpansion(inst.id, f.id, refId);
+                                };
                             } else {
-                                chipLabel = 'Deleted instance';
+                                twisty.textContent = '⚠️';
+                                twisty.title = 'Broken reference';
                             }
 
-                            // Add number prefix for ordered list
-                            chipContent.textContent = `${chipIndex + 1}. ${chipLabel}`;
+                            chip.appendChild(twisty);
 
-                            chipContent.textContent = chipLabel;
+                            // Chip content wrapper (clickable)
+                            const chipContent = document.createElement('span');
+
+                            // Chip labeling: NUMBER. smart label
+                            const chipLabel = getInstanceLabel(refId);
+                            chipContent.textContent = `${chipIndex + 1}. ${chipLabel}`;
                             chipContent.style.cursor = target ? 'pointer' : 'default';
                             chipContent.style.flex = '1';
 
-                            // Click navigation (same as ENTITY_REF)
+                            // Click navigation (same as INSTANCE_REFERENCE)
                             if (target) {
                                 chipContent.onclick = (e) => {
                                     e.stopPropagation();
@@ -4338,79 +4759,85 @@
                                 };
                             }
 
+                            chip.appendChild(chipContent);
+
+                            // Type indicator (subtle)
+                            if (target && targetBlueprint) {
+                                const typeSpan = document.createElement('span');
+                                typeSpan.className = 'muted';
+                                typeSpan.textContent = ` · ${targetBlueprint.name}`;
+                                typeSpan.style.fontSize = '11px';
+                                typeSpan.style.marginRight = '4px';
+                                chip.appendChild(typeSpan);
+                            }
+
                             // Create remove button
                             const removeBtn = document.createElement('span');
                             removeBtn.className = 'remove';
                             removeBtn.textContent = '×';
                             removeBtn.onclick = (e) => {
                                 e.stopPropagation();
-                                console.log('🗑️ Remove button clicked');
-                                console.log('  refId to remove:', refId);
-                                console.log('  Current ids array:', ids);
-                                console.log('  Field ID:', f.id);
 
                                 // Remove only this reference from the list
                                 pushUndo();
                                 const newIds = ids.filter(id => id !== refId);
-                                console.log('  New ids array:', newIds);
                                 inst.fieldValues[f.id] = newIds;
+
+                                // Also remove from expanded chips set
+                                expandedChips.delete(getChipKey(inst.id, f.id, refId));
+
                                 save();
                                 renderAll();
                             };
 
-                            chip.appendChild(chipContent);
                             chip.appendChild(removeBtn);
 
                             chip.title = target ?
-                                `Click to navigate to ${targetTpl.name} (${refId.slice(0, 8)})` :
+                                `${chipIndex + 1}. ${chipLabel} · ${targetBlueprint.name}\nDrag ⋮⋮ to reorder | Click label to navigate | Click ▸ to expand` :
                                 `⚠️ Broken reference to ${refId.slice(0, 8)}`;
-                            chipsContainer.appendChild(chip);
+
+                            chipContainer.appendChild(chip);
+
+                            // EXPANDED VIEW: Show instance fields
+                            if (isExpanded && target && targetBlueprint) {
+                                const expandedView = renderChipExpandedView(target, targetBlueprint, refId);
+                                chipContainer.appendChild(expandedView);
+                            }
+
+                            chipsOuterContainer.appendChild(chipContainer);
                         }
 
-                        control.appendChild(chipsContainer);
+                        control.appendChild(chipsOuterContainer);
 
                         // Add reference button (with duplicate prevention)
                         const addBtn = document.createElement('button');
                         addBtn.className = 'btn small primary';
                         addBtn.textContent = '🔗 Add Reference';
                         addBtn.onclick = () => {
-                            console.log('🔵 Add Reference button clicked');
-                            console.log('Field:', f.name);
-                            console.log('BlueprintTypeFilter:', f.cardTypeFilter);
-                            console.log('Current instance ID:', inst.id);
-
                             showInstancePicker(f.cardTypeFilter, (selectedId) => {
-                                console.log('🟢 Picker callback executed with selectedId:', selectedId);
-                                console.log('Current IDs array:', ids);
-                                console.log('Duplicate check:', ids.includes(selectedId));
-
                                 if (!ids.includes(selectedId)) {
-                                    console.log('✅ Adding new reference');
                                     pushUndo();
                                     ids.push(selectedId);
                                     inst.fieldValues[f.id] = ids;
                                     save();
                                     renderAll();
                                 } else {
-                                    console.log('❌ DUPLICATE DETECTED');
                                     alert('This reference already exists in the list.');
                                 }
                             }, inst.id);
-
-                            console.log('🔵 showInstancePicker called');
                         };
                         control.appendChild(addBtn);
                     }
-                } else if (f.fieldKind === FIELD_KIND.CARD_REF || f.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
-                    const merged = getMergedChildrenWithProvenance(tpl, inst, f.id);
+                } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                    const merged = getMergedChildrenWithProvenance(blueprint, inst, f.id);
 
                     for (const item of merged) {
                         // HARDENING: Skip static shapes in runtime rendering
                         if (isStaticInstanceShape(item.child)) {
                             const ghost = document.createElement('div');
                             ghost.className = 'instance-card static-ghost';
-                            ghost.textContent = '👻 Static template default';
-                            ghost.title = 'Static children are defined in template, not runtime';
+                            ghost.textContent = '👻 Static blueprint default';
+                            ghost.title = 'Static children are defined in blueprint, not runtime';
                             control.appendChild(ghost);
                             continue;
                         }
@@ -4421,17 +4848,18 @@
                         control.appendChild(childBlueprint);
                     }
 
-                    if (!isFieldStatic(tpl, f)) {
-                        if (f.fieldKind === FIELD_KIND.CARD_REF && merged.length === 0) {
-                            const btnRow = document.createElement('div');
-                            btnRow.style.display = 'flex';
-                            btnRow.style.gap = '6px';
+                    if (!isFieldStatic(blueprint, f)) {
 
-                            if (isContainField(f)) {
+                        const btnRow = document.createElement('div');
+                        btnRow.style.display = 'flex';
+                        btnRow.style.gap = '6px';
+
+                        if ((f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) && merged.length === 0) {
+                            if (true) {
                                 const moveBtn = document.createElement('button');
-                                moveBtn.className = 'btn small';
-                                moveBtn.textContent = '↪️ Move Existing';
-                                moveBtn.title = 'Move an orphaned instance here';
+                                moveBtn.className = 'btn small primary';
+                                moveBtn.textContent = '↪️ Move Instance Here';
+                                moveBtn.title = 'Move an orphan or instance here';
                                 moveBtn.onclick = () => {
                                     showInstancePicker(f.cardTypeFilter, (selectedId) => {
                                         pushUndo();
@@ -4443,15 +4871,14 @@
                                         }
                                         save();
                                         renderAll();
-                                    }, inst.id, true);  // showOnlyOrphans = true
+                                    }, inst.id, false);  // showOnlyOrphans = true
                                 };
                                 btnRow.appendChild(moveBtn);
                             }
-
-                            if (isReferenceField(f)) {
+                            if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
                                 const linkBtn = document.createElement('button');
                                 linkBtn.className = 'btn small primary';
-                                linkBtn.textContent = '🔗 Link Existing';
+                                linkBtn.textContent = '🔗 Link Instance';
                                 linkBtn.onclick = () => {
                                     // HARDENING: Exclude self and descendants
                                     showInstancePicker(f.cardTypeFilter, (selectedId) => {
@@ -4468,7 +4895,7 @@
                             sel.classList.add('valueInputDark');
                             const emptyOpt = document.createElement('option');
                             emptyOpt.value = '';
-                            emptyOpt.textContent = isReferenceField(f) ? 'Create New...' : 'Add...';
+                            emptyOpt.textContent = isReferenceField(f) || isContainField ? 'Create New...' : 'Add...';
                             sel.appendChild(emptyOpt);
                             for (const cand of state.blueprints.filter(tt => tt.type === f.cardTypeFilter && tt.type !== 'Root')) {
                                 const o = document.createElement('option');
@@ -4485,44 +4912,53 @@
                                 const registryParent = state.instances[inst.id];
 
                                 // FIXED: Both contain and reference mode now store IDs
-                                registryParent.fieldValues[f.id] = newInst.id;
+                                if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                                    registryParent.fieldValues[f.id] = newInst.id;
+                                } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                                    if (!Array.isArray(registryParent.fieldValues[f.id])) {
+                                        registryParent.fieldValues[f.id] = [];
+                                    }
+                                    registryParent.fieldValues[f.id].push(newInst.id);
+                                }
+
                                 if (newInst) editorCollapsed[newInst.id] = true;
                                 save();
                                 renderAll();
                             };
                             btnRow.appendChild(sel);
                             control.appendChild(btnRow);
-                        } else if (f.fieldKind === FIELD_KIND.LIST_OF_CARDS) {
+                        } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                             const addRow = document.createElement('div');
                             addRow.style.display = 'flex';
                             addRow.style.gap = '6px';
                             addRow.style.marginTop = '6px';
 
-                            if (isReferenceField(f)) {
-                                const linkBtn = document.createElement('button');
-                                linkBtn.className = 'btn small primary';
-                                linkBtn.textContent = '🔗 Link Existing';
-                                linkBtn.onclick = () => {
-                                    // HARDENING: Exclude self and descendants
+                            if (true) {
+                                const moveBtn = document.createElement('button');
+                                moveBtn.className = 'btn small primary';
+                                moveBtn.textContent = '↪️ Move Instance Here';
+                                moveBtn.title = 'Move an orphan or instance here';
+                                moveBtn.onclick = () => {
                                     showInstancePicker(f.cardTypeFilter, (selectedId) => {
                                         pushUndo();
-                                        const arr = inst.fieldValues[f.id] || [];
-                                        if (!arr.includes(selectedId)) {
-                                            arr.push(selectedId);
-                                            inst.fieldValues[f.id] = arr;
+                                        const result = moveInstance(selectedId, inst.id, f.id);
+                                        if (!result.success) {
+                                            alert('Move failed: ' + result.error);
+                                        } else {
+                                            console.log(`Moved instance ${selectedId.slice(0, 8)} to ${inst.id.slice(0, 8)}.${f.name}`);
                                         }
                                         save();
                                         renderAll();
-                                    }, inst.id);
+                                    }, inst.id, false);  // showOnlyOrphans = true
                                 };
-                                addRow.appendChild(linkBtn);
+                                addRow.appendChild(moveBtn);
                             }
 
                             const addSel = document.createElement('select');
                             addSel.classList.add('valueInputDark');
                             const emptyOpt = document.createElement('option');
                             emptyOpt.value = '';
-                            emptyOpt.textContent = isReferenceField(f) ? 'Create New...' : 'Add...';
+                            emptyOpt.textContent = isReferenceField(f) || isContainField(f) ? 'Create New...' : 'Add...';
                             addSel.appendChild(emptyOpt);
                             for (const cand of state.blueprints.filter(tt => tt.type === f.cardTypeFilter && tt.type !== 'Root')) {
                                 const o = document.createElement('option');
@@ -4590,8 +5026,8 @@
             // Show orphan details
             const orphanDetails = orphans.map(id => {
                 const inst = state.instances[id];
-                const tpl = findBlueprintById(inst.templateId);
-                return `  • ${tpl?.name || 'Unknown'} (${id.slice(0, 8)})`;
+                const blueprint = findBlueprintById(inst.templateId);
+                return `  • ${blueprint?.name || 'Unknown'} (${id.slice(0, 8)})`;
             }).join('\n');
 
             const confirmMsg =
@@ -4614,7 +5050,7 @@
 
         document.getElementById('newBlueprintBtn').addEventListener('click', () => {
             const t = createBlueprint('New', 'Generic');
-            navigateTo('template', t.id);
+            navigateTo('blueprint', t.id);
         });
 
         document.getElementById('exportBtn').addEventListener('click', exportJSON);
@@ -4834,6 +5270,7 @@
             }
 
             analyzeDuplicates();
+            scroll
             renderAll();
             updateUndoButtons();
             updateNavButtons();
