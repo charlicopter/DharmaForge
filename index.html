@@ -173,7 +173,6 @@
             gap: 8px;
             align-items: flex-start;
             padding: 6px;
-            border-radius: 6px
         }
 
         .field-key {
@@ -181,8 +180,29 @@
             max-width: 180px;
             color: var(--muted);
             font-size: 13px;
-            word-wrap: break-word;
-            flex-shrink: 0
+            flex-shrink: 0;
+
+            /* critical */
+            display: block;
+            padding-top: 0;
+        }
+
+        .field-control {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .field-control-inner {
+            display: flex;
+            flex-direction: column;
+
+            /* THIS is the alignment anchor */
+            padding-top: 0;
+        }
+
+        /* HARD RULE: first visible control line starts at 0 */
+        .field-control-inner>*:first-child {
+            margin-top: 0 !important;
         }
 
         input[type=text],
@@ -319,6 +339,14 @@
 
         .field-def.has-default:hover {
             background: rgba(251, 191, 36, 0.05);
+        }
+
+        .field-value {
+            display: flex;
+            align-items: center;
+            /* or flex-start if multiline text */
+            min-height: 20px;
+            /* stabilizes baseline */
         }
 
         .search {
@@ -932,7 +960,7 @@
             INSTANTIATOR: 'instantiator',
             INSTANTIATOR_LIST: 'instantiatorList',
             INSTANCE_REFERENCE: 'instanceReference',
-            INSTANCE_REFERENCE_LIST: 'instanceReferenceList'  // ← ADD THIS LINE
+            INSTANCE_REFERENCE_LIST: 'instanceReferenceList'
         };
 
         const FIELD_MODE = {
@@ -1023,7 +1051,7 @@
          * DEPRECATED Check if a field is static (defined by blueprint, not instance). DEPRECATED.
          */
         function isFieldStatic(blueprint, field) {
-            return false //blueprint.isStatic === true || field.isFieldStatic === true;
+            return blueprint.isStatic === true || field.isFieldStatic === true;
         }
 
         /**
@@ -2829,27 +2857,27 @@
         // RENDER ORCHESTRATION
         // ============================================================================
 
-function preserveScroll(fn) {
-    const nodes = document.querySelectorAll('[data-scroll-key]');
-    const scroll = {};
+        function preserveScroll(fn) {
+            const nodes = document.querySelectorAll('[data-scroll-key]');
+            const scroll = {};
 
-    nodes.forEach(el => {
-        scroll[el.dataset.scrollKey] = el.scrollTop;
-    });
-
-    fn(); // destructive render
-
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
             nodes.forEach(el => {
-                const key = el.dataset.scrollKey;
-                if (scroll[key] !== undefined) {
-                    el.scrollTop = scroll[key];
-                }
+                scroll[el.dataset.scrollKey] = el.scrollTop;
             });
-        });
-    });
-}
+
+            fn(); // destructive render
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    nodes.forEach(el => {
+                        const key = el.dataset.scrollKey;
+                        if (scroll[key] !== undefined) {
+                            el.scrollTop = scroll[key];
+                        }
+                    });
+                });
+            });
+        }
 
 
         function renderAll() {
@@ -3045,8 +3073,6 @@ function preserveScroll(fn) {
                     // Force save of any active input before navigation
                     const activeInput = document.querySelector('input.valueInputDark:focus');
                     if (activeInput) {
-                        console.log('🔥 SAVING ACTIVE INPUT before navigation');
-
                         // Manually trigger the input's save logic
                         activeInput.blur(); // Triggers onblur
 
@@ -3054,8 +3080,6 @@ function preserveScroll(fn) {
                         // Find the instance and field being edited
                         // (The blur handler will also save, but this ensures immediate save)
                         save();
-
-                        console.log('💾 SAVED - now navigating');
                     }
 
                     navigateTo('instance', inst.id);
@@ -3098,8 +3122,25 @@ function preserveScroll(fn) {
                         valArea.className = 'muted';
 
                         if (f.fieldKind === FIELD_KIND.PRIMITIVE) {
-                            const primVal = inst.fieldValues?.[f.id];
-                            valArea.textContent = (primVal === null || primVal === '') ? '[NULL]' : String(primVal);
+                            let primVal;
+
+                            const isStaticDefault =
+                                blueprint.isStatic &&
+                                blueprint.staticValues &&
+                                blueprint.staticValues[f.id] !== undefined &&
+                                inst.fieldValues?.[f.id] === undefined;
+
+                            if (isStaticDefault) {
+                                primVal = blueprint.staticValues[f.id];
+                                valArea.textContent = `${String(primVal)} (default)`;
+                                valArea.style.opacity = '0.7';
+                            } else {
+                                primVal = inst.fieldValues?.[f.id];
+                                valArea.textContent =
+                                    primVal === null ? '[NULL]' :
+                                        primVal === undefined ? '[EMPTY]' :
+                                            String(primVal);
+                            }
                         } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
                             const ids = inst.fieldValues?.[f.id];
                             if (Array.isArray(ids)) {
@@ -4131,6 +4172,7 @@ function preserveScroll(fn) {
                 headerLeft.appendChild(typeSpan);
             }
 
+            //This needs to be fixed - FIX ME
             if (origin === 'static') {
                 const lockIcon = document.createElement('span');
                 lockIcon.className = 'lock-icon';
@@ -4139,6 +4181,7 @@ function preserveScroll(fn) {
                 headerLeft.appendChild(lockIcon);
             }
 
+            //This needs to be fixed - FIX ME
             if (origin === 'reference') {
                 const refIcon = document.createElement('span');
                 refIcon.className = 'reference-icon';
@@ -4315,18 +4358,20 @@ function preserveScroll(fn) {
                 label.className = 'field-key';
                 label.textContent = f.name;
 
-                if (isFieldStatic(blueprint, f)) {
+                /*if (isFieldStatic(blueprint, f)) {
                     const lockIcon = document.createElement('span');
                     lockIcon.className = 'lock-icon';
                     lockIcon.textContent = '🔒';
                     lockIcon.title = 'Defined by blueprint';
                     lockIcon.style.marginLeft = '4px';
                     label.appendChild(lockIcon);
-                }
+                }*/
 
                 const control = document.createElement('div');
                 control.style.flex = '1';
                 control.style.minWidth = '0';
+                control.style.display = 'flex';
+                control.style.flexDirection = 'column';
 
                 // Render field based on kind
                 if (f.fieldKind === FIELD_KIND.PRIMITIVE) {
@@ -4342,9 +4387,10 @@ function preserveScroll(fn) {
                         defaultDisplay.style.alignItems = 'center';
                         defaultDisplay.style.gap = '8px';
                         defaultDisplay.style.marginBottom = '8px';
+                        defaultDisplay.style.marginTop = '0'
 
                         const valueText = document.createElement('div');
-                        valueText.textContent = String(defaultValue) + ' (blueprint default)';
+                        valueText.textContent = String(defaultValue);
                         valueText.className = 'muted';
                         valueText.style.flex = '1';
 
@@ -4373,7 +4419,7 @@ function preserveScroll(fn) {
                         const hint = document.createElement('div');
                         hint.className = 'muted';
                         hint.style.fontSize = '11px';
-                        hint.textContent = 'Click Override to customize';
+                        hint.textContent = '🔒';
 
                         const templateLink = document.createElement('button');
                         templateLink.className = 'btn small';
@@ -4414,7 +4460,6 @@ function preserveScroll(fn) {
                             save();
                         };
                         inp.onblur = () => {
-                            console.log('🔥 INPUT BLUR - rendering all');
                             save();
                             renderAll();
                         };
@@ -4456,7 +4501,7 @@ function preserveScroll(fn) {
                         }
                     }
                 } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
-                    if (isFieldStatic(blueprint, f)) {
+                    if (false /*isFieldStatic(blueprint, f)*/) {
                         const txt = document.createElement('div');
                         txt.textContent = '(static instanceReference)';
                         txt.className = 'muted';
@@ -4594,7 +4639,7 @@ function preserveScroll(fn) {
                     }
                 } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
                     // INSTANCE_REFERENCE_LIST: Ordered list of entity references (reuses INSTANCE_REFERENCE chip semantics)
-                    if (isFieldStatic(blueprint, f)) {
+                    if (false /*isFieldStatic(blueprint, f)*/) {
                         const txt = document.createElement('div');
                         txt.textContent = '(static instanceReferenceList)';
                         txt.className = 'muted';
@@ -4848,8 +4893,8 @@ function preserveScroll(fn) {
                         control.appendChild(childBlueprint);
                     }
 
-                    if (!isFieldStatic(blueprint, f)) {
-
+                    //if (!isFieldStatic(blueprint, f)) {
+                    if (true) {
                         const btnRow = document.createElement('div');
                         btnRow.style.display = 'flex';
                         btnRow.style.gap = '6px';
