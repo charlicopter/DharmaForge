@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>DharmaForge — A Strict, Self-Validating Knowledge Modeling Engine - v1.0</title>
+    <title>DharmaForge — A Visual, Declarative, Graph-Based Knowledge Programming Environment - v1.0</title>
     <style>
         :root {
             --bg: #0b0f13;
@@ -156,6 +156,22 @@
         .card-row.selected {
             box-shadow: 0 0 0 8px rgba(77, 163, 255, 0.14);
             outline: 2px solid rgba(77, 163, 255, 0.06)
+        }
+
+        .card-row.has-warnings {
+            background: rgba(251, 191, 36, 0.08) !important;
+            border-color: rgba(251, 191, 36, 0.3) !important;
+        }
+
+        .card-row.has-errors {
+            background: rgba(255, 107, 107, 0.08) !important;
+            border-color: rgba(255, 107, 107, 0.3) !important;
+        }
+
+        .issue-badge {
+            font-size: 11px;
+            margin-left: 6px;
+            opacity: 0.9;
         }
 
         .card-name {
@@ -401,16 +417,10 @@
         }
 
         .reference-icon {
-            color: var(--reference);
+            color: var(--success);
             font-size: 14px;
             cursor: help;
             flex-shrink: 0;
-        }
-
-        .reference-child {
-            border-style: dashed !important;
-            border-color: rgba(251, 191, 36, 0.3) !important;
-            background: rgba(251, 191, 36, 0.02) !important;
         }
 
         .tree-root {
@@ -527,8 +537,14 @@
 
         .instance-card.reference-child {
             border-style: dashed;
-            border-color: rgba(251, 191, 36, 0.3);
-            background: rgba(251, 191, 36, 0.02);
+            border-color: rgba(110, 231, 183, 0.4);
+            background: rgba(110, 231, 183, 0.02);
+        }
+
+        .broken-reference-child {
+            border-style: dashed !important;
+            border-color: rgba(251, 191, 36, 0.6) !important;
+            background: rgba(251, 191, 36, 0.08) !important;
         }
 
         .instance-header {
@@ -665,26 +681,59 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.3);
+            background: rgba(77, 163, 255, 0.1);
+            border: 1px solid rgba(77, 163, 255, 0.3);
             border-radius: 4px;
             padding: 4px 8px;
             margin: 2px;
             font-size: 11px;
-            color: var(--warning);
+            color: var(--accent);
         }
 
         .entityref-chip.broken {
-            background: rgba(255, 107, 107, 0.1);
-            border-color: rgba(255, 107, 107, 0.3);
+            background: rgba(255, 107, 107, 0.15);
+            border-color: rgba(255, 107, 107, 0.5);
             color: var(--danger);
-            opacity: 0.7;
+            opacity: 1;
             cursor: not-allowed;
         }
 
         .entityref-chip.broken::before {
-            content: '⚠️ ';
+            content: '';
             margin-right: 2px;
+        }
+
+        .entityref-chip.orphaned {
+            background: rgba(251, 191, 36, 0.15);
+            border-color: rgba(251, 191, 36, 0.5);
+            color: var(--warning);
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        .entityref-chip.orphaned::before {
+            content: '';
+            margin-right: 2px;
+        }
+
+        .entityref-chip.orphaned {
+            background: rgba(251, 191, 36, 0.15);
+            border-color: rgba(251, 191, 36, 0.5);
+            color: var(--warning);
+            opacity: 1;
+            cursor: pointer;
+        }
+
+        .orphaned-reference-child {
+            border-style: dashed !important;
+            border-color: rgba(251, 191, 36, 0.6) !important;
+            background: rgba(251, 191, 36, 0.08) !important;
+        }
+
+        .broken-reference-child {
+            border-style: dashed !important;
+            border-color: rgba(255, 107, 107, 0.6) !important;
+            background: rgba(255, 107, 107, 0.08) !important;
         }
 
         /* Override indicator styling */
@@ -1059,7 +1108,7 @@
          * StaticInstanceShape has NO id, NO _parent, NO _parentField.
          */
         function isStaticInstanceShape(obj) {
-            return false //(
+            return false; //(
             //obj !== null &&
             //typeof obj === 'object' &&
             //typeof obj.templateId === 'string' &&
@@ -1115,6 +1164,17 @@
         // HARDENING: Check if instance exists in registry
         function isInstanceInRegistry(instanceId) {
             return state.instances.hasOwnProperty(instanceId);
+        }
+
+        /**
+ * Check if an instance is orphaned (exists but not reachable from root).
+ */
+        function isInstanceOrphaned(instanceId) {
+            if (!instanceId || instanceId === state.rootInstanceId) return false;
+            if (!state.instances[instanceId]) return false; // Doesn't exist = deleted, not orphaned
+
+            const reachable = collectReachableInstances();
+            return !reachable.has(instanceId);
         }
 
         // HARDENING: Collect all reachable instance IDs from containment graph
@@ -1207,21 +1267,6 @@
 
                 const blueprint = findBlueprintById(inst.templateId);
                 if (!blueprint) return;
-
-                for (const field of blueprint.fields) {
-                    if (true) continue;
-
-                    const val = inst.fieldValues[field.id];
-                    if (!val) continue;
-
-                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
-                        scanInstance(val, inst.id, field.id);
-                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
-                        for (const child of val) {
-                            scanInstance(child, inst.id, field.id);
-                        }
-                    }
-                }
             }
 
             if (state.rootInstanceId) {
@@ -1258,21 +1303,6 @@
 
                 const blueprint = findBlueprintById(inst.templateId);
                 if (!blueprint) return;
-
-                for (const field of blueprint.fields) {
-                    if (true) continue;
-
-                    const val = inst.fieldValues[field.id];
-                    if (!val) continue;
-
-                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
-                        traverse(val.id);
-                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
-                        for (const child of val) {
-                            if (child?.id) traverse(child.id);
-                        }
-                    }
-                }
             }
 
             traverse(instanceId);
@@ -1477,6 +1507,7 @@
         }
 
         // HARDENING: Import with automatic validation
+        // HARDENING: Import with pre-migration validation and user confirmation
         function importJSONFile(file) {
             const reader = new FileReader();
             reader.onload = () => {
@@ -1488,6 +1519,47 @@
                         return;
                     }
 
+                    // PRE-MIGRATION SCAN: Detect issues that will be auto-fixed
+                    const migrationIssues = [];
+
+                    // Check for null/empty blueprint types
+                    for (const blueprint of parsed.blueprints || []) {
+                        const hasValidType = blueprint.type &&
+                            typeof blueprint.type === 'string' &&
+                            blueprint.type.trim() !== '' &&
+                            blueprint.type !== 'null';
+
+                        if (!hasValidType) {
+                            const typeDesc = blueprint.type === null ? 'null' :
+                                blueprint.type === undefined ? 'undefined' :
+                                    blueprint.type === 'null' ? 'string "null"' :
+                                        'empty';
+                            migrationIssues.push(`• Blueprint "${blueprint.name || 'unnamed'}" has ${typeDesc} type → will set to "Generic"`);
+                        }
+                    }
+
+                    // If migration fixes are needed, warn user and ask for confirmation
+                    if (migrationIssues.length > 0) {
+                        const confirmMsg = [
+                            '⚠️ IMPORT VALIDATION',
+                            '',
+                            'Found data quality issues that will be automatically fixed:',
+                            '',
+                            ...migrationIssues.slice(0, 10),
+                            migrationIssues.length > 10 ? `... and ${migrationIssues.length - 10} more issues` : '',
+                            '',
+                            'Continue import with these automatic fixes?',
+                            '',
+                            '(You can undo after import if needed)'
+                        ].filter(Boolean).join('\n');
+
+                        if (!confirm(confirmMsg)) {
+                            console.log('Import cancelled by user');
+                            return;
+                        }
+                    }
+
+                    // User confirmed (or no issues found), proceed with import
                     pushUndo();
                     state = parsed;
                     migrateState(state);
@@ -1517,10 +1589,15 @@
                         alert(`Import successful with ${validation.warnings.length} warning(s).\n\nRun Validate to see details.`);
                         lastValidationResult = validation;
                     } else {
-                        alert('Import successful - state is valid!');
+                        // Show success with summary of fixes if any were applied
+                        if (migrationIssues.length > 0) {
+                            alert(`✅ Import successful!\n\nApplied ${migrationIssues.length} automatic fix(es).\nState is valid.`);
+                        } else {
+                            alert('✅ Import successful - state is valid!');
+                        }
                         lastValidationResult = null;
                     }
-
+                    navigateTo('instance', state.rootInstanceId);
                     save();
                     renderAll();
                 } catch (e) {
@@ -1548,6 +1625,24 @@
         // ============================================================================
 
         function migrateState(st) {
+            // HARDENING: Ensure all blueprints have a valid type
+            // HARDENING: Ensure all blueprints have a valid type
+            for (const blueprint of st.blueprints || []) {
+                // Check if type is null, undefined, empty string, or the string "null"
+                const hasValidType = blueprint.type &&
+                    typeof blueprint.type === 'string' &&
+                    blueprint.type.trim() !== '' &&
+                    blueprint.type !== 'null';  // Catch string "null"
+
+                if (!hasValidType) {
+                    const typeDesc = blueprint.type === null ? 'null' :
+                        blueprint.type === undefined ? 'undefined' :
+                            blueprint.type === 'null' ? 'string "null"' : 'empty';
+                    console.log(`Migration: Fixed ${typeDesc} type for blueprint "${blueprint.name || 'unnamed'}" → "Generic"`);
+                    blueprint.type = 'Generic';
+                }
+            }
+
             // HARDENING: Ensure all reachable instances are in registry
             ensureRegistryConsistency(st);
 
@@ -1578,19 +1673,6 @@
 
                 const blueprint = st.blueprints.find(t => t.id === inst.templateId);
                 if (!blueprint) return;
-
-                for (const field of blueprint.fields || []) {
-                    if (true) continue;
-                    const val = inst.fieldValues?.[field.id];
-                    if (!val) continue;
-                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
-                        scanTree(val, visited);
-                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
-                        for (const child of val) {
-                            if (child?.id) scanTree(child, visited);
-                        }
-                    }
-                }
             }
 
             if (st.rootInstanceId) {
@@ -1648,6 +1730,115 @@
             return state.blueprints.find(t => t.id === id);
         }
 
+        /**
+         * Scan a blueprint for field configuration issues.
+         * Returns counts of warnings (unselected types) and errors (orphaned types).
+         */
+        function scanBlueprintIssues(blueprint) {
+            let warnings = 0;  // Unselected type filters
+            let errors = 0;    // Orphaned type references
+
+            // Get list of valid types
+            const validTypes = new Set(
+                state.blueprints
+                    .map(t => t.type)
+                    .filter(t => t && typeof t === 'string' && t.trim() !== '' && t !== 'Root')
+            );
+
+            for (const field of blueprint.fields || []) {
+                // Only check fields that have type filters
+                if (field.fieldKind === FIELD_KIND.INSTANTIATOR ||
+                    field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST ||
+                    field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE ||
+                    field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
+
+                    const filterType = field.blueprintTypeFilter;
+
+                    // Yellow warning: No type selected
+                    if (!filterType || filterType === null || filterType === '') {
+                        warnings++;
+                    }
+                    // Red error: Type selected but doesn't exist
+                    else if (!validTypes.has(filterType)) {
+                        errors++;
+                    }
+                }
+            }
+
+            return { warnings, errors };
+        }
+
+        function scanInstanceIssues(inst) {
+            const errors = [];
+            const warnings = [];
+
+            const blueprint = findBlueprintById(inst.templateId);
+            if (!blueprint) {
+                errors.push('missing_blueprint');
+                return { errors, warnings };
+            }
+
+            for (const field of blueprint.fields) {
+                const val = inst.fieldValues[field.id];
+
+                // Check reference fields (single)
+                if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE && val) {
+                    // Handle both correct (string) and corrupted (array) data
+                    const ids = typeof val === 'string' ? [val] : (Array.isArray(val) ? val : []);
+                    for (const id of ids) {
+                        if (!findInstanceById(id)) {
+                            errors.push(`broken_ref:${field.name}`);
+                        } else if (isInstanceOrphaned(id)) {
+                            warnings.push(`orphaned_ref:${field.name}`);
+                        }
+                    }
+                }
+
+                // Check instantiator fields (single)
+                if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val && typeof val === 'string') {
+                    if (!findInstanceById(val)) {
+                        errors.push(`broken_link:${field.name}`);
+                    } else if (isInstanceOrphaned(val)) {
+                        warnings.push(`orphaned_link:${field.name}`);
+                    }
+                }
+
+                // Check type filters
+                if ((field.fieldKind === FIELD_KIND.INSTANTIATOR ||
+                    field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) &&
+                    !field.blueprintTypeFilter) {
+                    warnings.push(`no_filter:${field.name}`);
+                }
+
+                // Lists - check each element
+                if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST && Array.isArray(val)) {
+                    for (const id of val) {
+                        if (!findInstanceById(id)) {
+                            errors.push(`broken_ref:${field.name}`);
+                        } else if (isInstanceOrphaned(id)) {
+                            warnings.push(`orphaned_ref:${field.name}`);
+                        }
+                    }
+                }
+
+                if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
+                    for (const id of val) {
+                        if (!findInstanceById(id)) {
+                            errors.push(`broken_link:${field.name}`);
+                        } else if (isInstanceOrphaned(id)) {
+                            warnings.push(`orphaned_link:${field.name}`);
+                        }
+                    }
+                }
+            }
+
+            return {
+                errorCount: errors.length,
+                warningCount: warnings.length,
+                details: { errors, warnings }
+            };
+        }
+
         function isRootBlueprintId(id) {
             const rt = state.blueprints[0];
             return rt && rt.id === id && rt.type === 'Root';
@@ -1658,7 +1849,7 @@
             const t = {
                 id: generateUUID(),
                 name,
-                type,
+                type: type || 'Generic', // HARDENING: Never allow null/empty type
                 fields: [],
             };
             state.blueprints.push(t);
@@ -1739,6 +1930,17 @@
             return inst;
         }
 
+        /**
+ * Check if an instance is orphaned (exists but not reachable from root).
+ */
+        function isInstanceOrphaned(instanceId) {
+            if (!instanceId || instanceId === state.rootInstanceId) return false;
+            if (!state.instances[instanceId]) return false; // Doesn't exist = not orphaned, it's deleted
+
+            const reachable = collectReachableInstances();
+            return !reachable.has(instanceId);
+        }
+
         // ============================================================================
         // INSTANCE DELETION (HARDENED)
         // ============================================================================
@@ -1781,22 +1983,24 @@
                 const blueprint = findBlueprintById(current.templateId);
                 if (!blueprint) return;
 
-                // Traverse only contain-mode children
-                for (const field of blueprint.fields) {
-                    if (true) continue;
+                // CRITICAL: Recursively collect owned children
+                for (const field of blueprint.fields || []) {
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR ||
+                        field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
 
-                    const val = current.fieldValues[field.id];
-                    if (!val) continue;
+                        const val = current.fieldValues[field.id];
 
-                    // FIXED: Contain mode now stores IDs (strings), not objects
-                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
-                        if (val && typeof val === 'string') {
-                            collectOwnedDescendants(val);
-                        }
-                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
-                        if (Array.isArray(val)) {
+                        if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val) {
+                            const child = findInstanceById(val);
+                            if (child && child._parent === id) {
+                                // Only cascade if we own it
+                                collectOwnedDescendants(val);
+                            }
+                        } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
                             for (const childId of val) {
-                                if (childId && typeof childId === 'string') {
+                                const child = findInstanceById(childId);
+                                if (child && child._parent === id) {
+                                    // Only cascade if we own it
                                     collectOwnedDescendants(childId);
                                 }
                             }
@@ -1842,15 +2046,8 @@
             }
         }
 
-        /**
-         * Clean all references to deleted instance IDs.
-         * Scans all instances and removes deleted IDs from:
-         * - instanceReference fields (HARDENING: reference removal only, never cascade delete)
-         * - reference-mode instantiator fields
-         * - reference-mode instantiatorList fields
-         */
         function cleanupReferences(deletedIds) {
-            console.log('🧹 cleanupReferences called with', deletedIds.size, 'deleted IDs:', Array.from(deletedIds));
+            /*console.log('🧹 cleanupReferences called with', deletedIds.size, 'deleted IDs:', Array.from(deletedIds));
 
             for (const instId in state.instances) {
                 const inst = state.instances[instId];
@@ -1888,6 +2085,16 @@
             }
 
             console.log('🧹 cleanupReferences complete');
+            */
+
+            console.log('🧹 cleanupReferences called with', deletedIds.size, 'deleted IDs:', Array.from(deletedIds));
+
+            // NO LONGER CLEANING ANY REFERENCES
+            // All broken references (instantiator, instantiatorList, instanceReference, instanceReferenceList)
+            // are preserved and shown as broken/red to the user
+            // User must explicitly clear broken references if desired
+
+            console.log('🧹 cleanupReferences complete (no cleaning - broken refs preserved)');
         }
 
         // ============================================================================
@@ -1945,10 +2152,10 @@
             }
 
             // Check type compatibility
-            if (newField.cardTypeFilter) {
+            if (newField.blueprintTypeFilter) {
                 const instBlueprint = findBlueprintById(inst.templateId);
-                if (instBlueprint && instBlueprint.type !== newField.cardTypeFilter) {
-                    return { success: false, error: `Type mismatch: expected ${newField.cardTypeFilter}, got ${instBlueprint.type}` };
+                if (instBlueprint && instBlueprint.type !== newField.blueprintTypeFilter) {
+                    return { success: false, error: `Type mismatch: expected ${newField.blueprintTypeFilter}, got ${instBlueprint.type}` };
                 }
             }
 
@@ -2216,35 +2423,33 @@
                     }
 
                     // Check reference-mode fields
-                    if (true) {
-                        if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
-                            if (val !== null && !isValidUUID(val)) {
-                                errors.push(
-                                    `Instance ${instId}, field ${field.name}: reference instantiator must be UUID or null`
-                                );
-                            }
-                            if (val && !findInstanceById(val)) {
-                                warnings.push(
-                                    `Instance ${instId}, field ${field.name}: broken reference to ${val}`
-                                );
-                            }
-                        } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
-                            if (!Array.isArray(val)) {
-                                errors.push(
-                                    `Instance ${instId}, field ${field.name}: reference instantiatorList must be array`
-                                );
-                            } else {
-                                for (const refId of val) {
-                                    if (!isValidUUID(refId)) {
-                                        errors.push(
-                                            `Instance ${instId}, field ${field.name}: invalid UUID in instantiatorList: ${refId}`
-                                        );
-                                    }
-                                    if (!findInstanceById(refId)) {
-                                        warnings.push(
-                                            `Instance ${instId}, field ${field.name}: broken reference to ${refId}`
-                                        );
-                                    }
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                        if (val !== null && !isValidUUID(val)) {
+                            errors.push(
+                                `Instance ${instId}, field ${field.name}: reference instantiator must be UUID or null`
+                            );
+                        }
+                        if (val && !findInstanceById(val)) {
+                            warnings.push(
+                                `Instance ${instId}, field ${field.name}: broken reference to ${val}`
+                            );
+                        }
+                    } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                        if (!Array.isArray(val)) {
+                            errors.push(
+                                `Instance ${instId}, field ${field.name}: reference instantiatorList must be array`
+                            );
+                        } else {
+                            for (const refId of val) {
+                                if (!isValidUUID(refId)) {
+                                    errors.push(
+                                        `Instance ${instId}, field ${field.name}: invalid UUID in instantiatorList: ${refId}`
+                                    );
+                                }
+                                if (!findInstanceById(refId)) {
+                                    warnings.push(
+                                        `Instance ${instId}, field ${field.name}: broken reference to ${refId}`
+                                    );
                                 }
                             }
                         }
@@ -2324,24 +2529,6 @@
                     path.pop();
                     recursionStack.delete(instId);
                     return;
-                }
-
-                const blueprint = findBlueprintById(inst.templateId);
-                if (blueprint) {
-                    for (const field of blueprint.fields) {
-                        if (true) continue;
-
-                        const val = inst.fieldValues[field.id];
-                        if (!val) continue;
-
-                        if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val.id) {
-                            dfs(val.id, path);
-                        } else if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
-                            for (const child of val) {
-                                if (child?.id) dfs(child.id, path);
-                            }
-                        }
-                    }
                 }
 
                 path.pop();
@@ -2901,20 +3088,6 @@
             forwardBtn: document.getElementById('forwardBtn')
         };
 
-        function getBlueprint(inst) {
-            if (!inst) return null;
-
-            const id = inst.blueprint || inst.blueprint;
-            if (!id) return null;
-
-            if (flowDocument && flowDocument.blueprints && flowDocument.blueprints[id]) {
-                return flowDocument.blueprints[id];
-            }
-
-            console.warn("Blueprint not found:", id, inst);
-            return null;
-        }
-
         /**
          * Smart instance label used throughout the UI.
          * Accepts either an instance object or an instance ID string.
@@ -2957,7 +3130,7 @@
                 }
 
                 /*
-                // 3) Use first primitive field value (if present)
+                Use first primitive field value (if present)
                 if (Array.isArray(bp.fields)) {
                     const firstPrim = bp.fields.find(f => f && f.fieldKind === FIELD_KIND.PRIMITIVE);
                     if (firstPrim && fv[firstPrim.id] !== undefined && fv[firstPrim.id] !== null && fv[firstPrim.id] !== '') {
@@ -2970,6 +3143,77 @@
             const bpName = bp && bp.name ? bp.name : 'Blueprint';
             const shortId = inst.id ? inst.id.slice(0, 8) : '?';
             return `${bpName} #${shortId}`;
+        }
+
+        /**
+         * Get the status of a referenced instance for chip rendering.
+         * Returns: { exists, isOrphaned, cssClass, icon, tooltip, label }
+         */
+        function getReferenceStatus(refId) {
+            const target = findInstanceById(refId);
+            const isOrphaned = target && isInstanceOrphaned(refId);
+
+            if (!target) {
+                return {
+                    exists: false,
+                    isOrphaned: false,
+                    cssClass: 'broken',
+                    icon: '🔴',
+                    tooltip: 'Broken reference (deleted)',
+                    labelSuffix: ' (deleted)'
+                };
+            } else if (isOrphaned) {
+                return {
+                    exists: true,
+                    isOrphaned: true,
+                    cssClass: 'orphaned',
+                    icon: '⚠️',
+                    tooltip: 'Orphaned instance (unreachable from root)',
+                    labelSuffix: ' (orphaned)'
+                };
+            } else {
+                return {
+                    exists: true,
+                    isOrphaned: false,
+                    cssClass: null,
+                    icon: null,
+                    tooltip: null,
+                    labelSuffix: ''
+                };
+            }
+        }
+
+        /**
+         * Create twisty for reference chip.
+         */
+        function createReferenceTwisty(refId, refStatus, inst, f) {
+            const isExpanded = isChipExpanded(inst.id, f.id, refId);
+
+            const twisty = document.createElement('span');
+            twisty.className = 'chip-twisty';
+
+            if (refStatus.icon) {
+                twisty.textContent = refStatus.icon;
+                twisty.title = refStatus.tooltip;
+                if (refStatus.isOrphaned) {
+                    // Orphaned instances can still be expanded
+                    twisty.classList.add('expandable');
+                    twisty.onclick = (e) => {
+                        e.stopPropagation();
+                        toggleChipExpansion(inst.id, f.id, refId);
+                    };
+                }
+            } else {
+                twisty.classList.add('expandable');
+                twisty.textContent = isExpanded ? '▾' : '▸';
+                twisty.title = isExpanded ? 'Click to collapse' : 'Click to expand';
+                twisty.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleChipExpansion(inst.id, f.id, refId);
+                };
+            }
+
+            return twisty;
         }
 
         // ============================================================================
@@ -2999,7 +3243,7 @@
             const ul = document.createElement('ul');
             ul.className = 'tree-branch';
 
-            function buildLi(inst, visited = new Set()) {
+            function buildLi(inst, visited = new Set(), origin = 'dynamic') {
                 if (visited.has(inst.id)) {
                     const li = document.createElement('li');
                     const node = document.createElement('div');
@@ -3052,8 +3296,43 @@
                 label.className = 'node-label';
                 const nameSpan = document.createElement('div');
                 nameSpan.className = 'card-name';
-                nameSpan.textContent = blueprint.name;
+
+                // Show reference icon and green color for referenced instances
+                if (origin === 'reference') {
+                    const refIcon = document.createElement('span');
+                    refIcon.textContent = '🔗 ';
+                    refIcon.style.color = 'var(--success)';
+                    nameSpan.appendChild(refIcon);
+
+                    const nameText = document.createElement('span');
+                    nameText.textContent = blueprint.name;
+                    nameText.style.color = 'var(--success)';
+                    nameSpan.appendChild(nameText);
+                } else {
+                    nameSpan.textContent = blueprint.name;
+                }
+
                 label.appendChild(nameSpan);
+
+                const issues = scanInstanceIssues(inst);
+
+                if (issues.errorCount > 0) {
+                    const badge = document.createElement('span');
+                    badge.textContent = `🔴 ${issues.errorCount}`;
+                    badge.style.fontSize = '11px';
+                    badge.style.color = 'var(--danger)';
+                    badge.style.marginLeft = '6px';
+                    label.appendChild(badge);
+                }
+
+                if (issues.warningCount > 0) {
+                    const badge = document.createElement('span');
+                    badge.textContent = `⚠️ ${issues.warningCount}`;
+                    badge.style.fontSize = '11px';
+                    badge.style.color = 'var(--warning)';
+                    badge.style.marginLeft = '6px';
+                    label.appendChild(badge);
+                }
 
                 const typeSpan = document.createElement('div');
                 typeSpan.className = 'card-type muted';
@@ -3223,7 +3502,10 @@
                         if (f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
                             const merged = getMergedChildrenWithProvenance(blueprint, inst, f.id);
                             for (const item of merged) {
-                                const childLi = buildLi(item.child, new Set(visited));
+                                // CRITICAL: Only track visited for OWNED children (origin = 'dynamic')
+                                // Referenced children should not contribute to cycle detection
+                                const childVisited = item.origin === 'dynamic' ? visited : new Set();
+                                const childLi = buildLi(item.child, childVisited, item.origin);
                                 branch.appendChild(childLi);
                             }
                         }
@@ -3235,7 +3517,7 @@
                 return li;
             }
 
-            const rootLi = buildLi(root, new Set());
+            const rootLi = buildLi(root, new Set(), 'dynamic');
             ul.appendChild(rootLi);
             treeRoot.appendChild(ul);
             el.hierarchy.appendChild(treeRoot);
@@ -3267,9 +3549,30 @@
                     navigateTo('blueprint', t.id);
                 };
 
+                // Scan for field issues
+                const issues = scanBlueprintIssues(t);
+                const hasIssues = issues.warnings > 0 || issues.errors > 0;
+
+                // Add issue styling
+                if (issues.errors > 0) {
+                    row.classList.add('has-errors');
+                } else if (issues.warnings > 0) {
+                    row.classList.add('has-warnings');
+                }
+
                 const mid = document.createElement('div');
                 mid.style.flex = '1';
-                mid.innerHTML = `<div class='card-name'>${t.name}${t.isStatic ? ' (<span class="static-badge">static</span>)' : ''}</div><div class='card-type muted'>${t.type}</div>`;
+
+                // Build issue badges
+                let issueBadges = '';
+                if (issues.warnings > 0) {
+                    issueBadges += `<span class="issue-badge" title="${issues.warnings} unselected type filter(s)">⚠️ (${issues.warnings})</span>`;
+                }
+                if (issues.errors > 0) {
+                    issueBadges += `<span class="issue-badge" title="${issues.errors} broken type reference(s)">🔴 (${issues.errors})</span>`;
+                }
+
+                mid.innerHTML = `<div class='card-name'>${t.name}${t.isStatic ? ' (<span class="static-badge">static</span>)' : ''}${issueBadges}</div><div class='card-type muted'>${t.type}</div>`;
                 row.appendChild(mid);
 
                 const actions = document.createElement('div');
@@ -3364,9 +3667,97 @@
         }
 
         /**
- * Update visual indicators on field rows without full re-render.
- * Adds/removes .has-default class and tooltips based on current staticValues.
- */
+                 * Render blueprint type filter dropdown for instantiator/instanceReference fields.
+                 * Handles orphaned blueprint types by showing a warning option.
+                 * 
+                 * @param {Object} field - The field definition
+                 * @param {Object} blueprint - The parent blueprint
+                 * @returns {HTMLSelectElement} The configured select element
+                 */
+        function renderBlueprintTypeFilterDropdown(field, blueprint) {
+
+            console.log('🔍 Filter dropdown:', {
+                fieldName: field.name,
+                blueprintTypeFilter: field.blueprintTypeFilter,
+                typeOfFilter: typeof field.blueprintTypeFilter,
+                isNull: field.blueprintTypeFilter === null,
+                isEmpty: field.blueprintTypeFilter === ''
+            });
+            const filterSel = document.createElement('select');
+
+            // Build list of all existing types (filter out null/undefined, don't inject "Generic")
+            const types = Array.from(new Set(
+                state.blueprints
+                    .map(t => t.type)
+                    .filter(t => t && typeof t === 'string' && t.trim() !== '')
+            )).filter(t => t !== 'Root').sort();
+
+            const filterType = field.blueprintTypeFilter;
+            const hasNoSelection = !filterType || filterType === null || filterType === '';
+            const filterTypeExists = filterType && types.includes(filterType);
+
+            // CASE 1: No type selected yet (new field)
+            if (hasNoSelection) {
+                const placeholderOpt = document.createElement('option');
+                placeholderOpt.value = '';
+                placeholderOpt.textContent = '— Select Blueprint Type —';
+                placeholderOpt.disabled = true;
+                placeholderOpt.selected = true;
+                filterSel.appendChild(placeholderOpt);
+
+                filterSel.classList.add('invalid');
+                filterSel.style.cssText = 'border: 1px solid var(--warning) !important; background: rgba(251, 191, 36, 0.08) !important;';
+                filterSel.title = 'Please select a blueprint type for this field';
+            }
+            // CASE 2: Type selected but blueprint deleted (broken reference)
+            else if (filterType && !filterTypeExists) {
+                const missingOpt = document.createElement('option');
+                missingOpt.value = filterType;
+                missingOpt.textContent = `⚠ Filter type missing: ${filterType}`;
+                missingOpt.disabled = true;
+                missingOpt.selected = true;
+                filterSel.appendChild(missingOpt);
+
+                // Add separator
+                const separator = document.createElement('option');
+                separator.disabled = true;
+                separator.textContent = '─────────────';
+                filterSel.appendChild(separator);
+
+                filterSel.classList.add('invalid');
+                filterSel.style.cssText = 'border: 1px solid var(--danger) !important; background: rgba(255, 107, 107, 0.08) !important;';
+                filterSel.title = 'This field references a blueprint type that no longer exists. Select a new type from the list below.';
+
+                // Add orphaned type to list so user can re-select it if desired
+                if (!types.includes(filterType)) {
+                    types.push(filterType);
+                    types.sort();
+                }
+            }
+
+            // Add all valid types
+            for (const ty of types) {
+                const o = document.createElement('option');
+                o.value = ty;
+                o.textContent = ty;
+                filterSel.appendChild(o);
+            }
+
+            // Set current value (only if valid selection exists)
+            if (!hasNoSelection && filterTypeExists) {
+                filterSel.value = field.blueprintTypeFilter;
+            }
+
+            filterSel.onchange = () => {
+                pushUndo();
+                field.blueprintTypeFilter = filterSel.value;
+                save();
+                renderAll();
+            };
+
+            return filterSel;
+        }
+
         function updateFieldIndicators() {
             const blueprint = findBlueprintById(selected.id);
             if (!blueprint || selected.kind !== 'blueprint') return;
@@ -3438,6 +3829,8 @@
             const existingTypes = Array.from(new Set(
                 state.blueprints.map(t => t.type).filter(t => t && t !== 'Root')
             )).sort();
+
+            // HARDENING: surface missing blueprintTypeFilte
 
             // Add existing types as options
             for (const type of existingTypes) {
@@ -3684,7 +4077,7 @@
             wrap.appendChild(staticSection);
 
             // ============================================================================
-            // END STATIC SECTION
+            // END DEFAULT SECTION
             // ============================================================================
             // Fields list
             const fieldList = document.createElement('div');
@@ -3768,32 +4161,157 @@
                 });
                 kindSel.value = f.fieldKind;
                 kindSel.onchange = () => {
-                    pushUndo();
-
                     const oldKind = f.fieldKind;
                     const newKind = kindSel.value;
 
-                    // HARDENING: Check if data will be lost and warn user
-                    let hasData = false;
-                    let affectedCount = 0;
+                    // Scan for affected instances and owned children that will be deleted
+                    const affectedInstances = [];
+                    let totalOwnedToDelete = 0;
 
                     for (const instId in state.instances) {
                         const inst = state.instances[instId];
-                        if (inst.templateId === blueprint.id) {
-                            const val = inst.fieldValues[f.id];
+                        if (inst.templateId !== blueprint.id) continue;
 
-                            if (oldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST && newKind === FIELD_KIND.INSTANTIATOR) {
-                                if (Array.isArray(val) && val.length > 0) {
-                                    hasData = true;
-                                    affectedCount++;
+                        const val = inst.fieldValues[f.id];
+                        if (!val) continue; // Skip empty fields
+
+                        // Check if field has data
+                        const hasData =
+                            (typeof val === 'string' && val) ||
+                            (Array.isArray(val) && val.length > 0);
+
+                        if (!hasData) continue;
+
+                        // For instantiator/instantiatorList fields, count owned children
+                        let ownedChildren = [];
+                        if (oldKind === FIELD_KIND.INSTANTIATOR || oldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                            const ids = oldKind === FIELD_KIND.INSTANTIATOR ? [val] : val;
+                            for (const childId of ids) {
+                                const child = findInstanceById(childId);
+                                if (child && child._parent === instId) {
+                                    ownedChildren.push({ id: childId, name: findBlueprintById(child.templateId)?.name || 'Unknown' });
                                 }
+                            }
+                        }
+
+                        if (hasData) {
+                            affectedInstances.push({
+                                id: instId,
+                                ownedChildren: ownedChildren
+                            });
+                            totalOwnedToDelete += ownedChildren.length;
+                        }
+                    }
+
+                    // Scan for references to instances that will be deleted
+                    const allDeletedIds = new Set();
+                    for (const a of affectedInstances) {
+                        for (const child of a.ownedChildren) {
+                            allDeletedIds.add(child.id);
+                        }
+                    }
+
+                    // Find all references to deleted instances
+                    const brokenReferences = [];
+                    let totalBrokenRefs = 0;
+
+                    if (allDeletedIds.size > 0) {
+                        for (const instId in state.instances) {
+                            if (allDeletedIds.has(instId)) continue; // Skip instances being deleted
+                            
+                            const inst = state.instances[instId];
+                            const bp = findBlueprintById(inst.templateId);
+                            if (!bp) continue;
+
+                            const refsInThisInstance = [];
+
+                            for (const field of bp.fields) {
+                                const val = inst.fieldValues[field.id];
+
+                                // Check all reference field types
+                                if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE && val) {
+                                    const ids = typeof val === 'string' ? [val] : (Array.isArray(val) ? val : []);
+                                    for (const id of ids) {
+                                        if (allDeletedIds.has(id)) {
+                                            refsInThisInstance.push(field.name);
+                                        }
+                                    }
+                                }
+
+                                if (field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST && Array.isArray(val)) {
+                                    for (const id of val) {
+                                        if (allDeletedIds.has(id)) {
+                                            refsInThisInstance.push(field.name);
+                                        }
+                                    }
+                                }
+
+                                if (field.fieldKind === FIELD_KIND.INSTANTIATOR && val && typeof val === 'string') {
+                                    if (allDeletedIds.has(val)) {
+                                        refsInThisInstance.push(field.name);
+                                    }
+                                }
+
+                                if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
+                                    for (const id of val) {
+                                        if (allDeletedIds.has(id)) {
+                                            refsInThisInstance.push(field.name);
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (refsInThisInstance.length > 0) {
+                                brokenReferences.push({
+                                    id: instId,
+                                    count: refsInThisInstance.length,
+                                    fields: refsInThisInstance
+                                });
+                                totalBrokenRefs += refsInThisInstance.length;
                             }
                         }
                     }
 
-                    // Show warning if data will be lost
-                    if (hasData) {
-                        alert(`⚠️ Changing field kind will clear data in ${affectedCount} instance(s).`);
+                    // Show warning if there's data or owned instances
+                    if (affectedInstances.length > 0) {
+                        const instanceDetails = affectedInstances.map(a => {
+                            const instName = `Instance ${a.id.slice(0, 8)}`;
+                            if (a.ownedChildren.length > 0) {
+                                const childList = a.ownedChildren.map(c => c.name).join(', ');
+                                return `  • ${instName}: ${a.ownedChildren.length} owned instance(s) will be deleted (${childList})`;
+                            } else {
+                                return `  • ${instName}: field data will be cleared`;
+                            }
+                        }).join('\n');
+
+                        const confirmMsg = 
+                            `⚠️ FIELD TYPE CHANGE\n\n` +
+                            `Changing "${f.name}" from ${oldKind} → ${newKind}\n` +
+                            `will clear this field in ${affectedInstances.length} instance(s).\n\n` +
+                            (totalOwnedToDelete > 0 ? 
+                                `This will CASCADE DELETE ${totalOwnedToDelete} owned instance(s):\n\n${instanceDetails}\n\n` :
+                                `Affected:\n${instanceDetails}\n\n`) +
+                            (totalBrokenRefs > 0 ?
+                                `This will CREATE ${totalBrokenRefs} BROKEN REFERENCE(S):\n\n` +
+                                brokenReferences.map(br => 
+                                    `  • Instance ${br.id.slice(0, 8)}: ${br.count} reference(s) will break (${br.fields.join(', ')})`
+                                ).join('\n') + '\n\n' : '') +
+                            `Continue?`;
+
+                        if (!confirm(confirmMsg)) {
+                            // Cancel: revert dropdown
+                            kindSel.value = oldKind;
+                            return;
+                        }
+                    }
+
+                    pushUndo();
+
+                    // CASCADE DELETE owned instances before clearing fields
+                    for (const a of affectedInstances) {
+                        for (const child of a.ownedChildren) {
+                            deleteInstance(child.id);
+                        }
                     }
 
                     // Change field kind
@@ -3801,98 +4319,31 @@
 
                     // Update field properties based on new kind
                     if (f.fieldKind === FIELD_KIND.PRIMITIVE) {
-                        delete f.cardTypeFilter;
+                        delete f.blueprintTypeFilter;
                         delete f.fieldMode;
                         f.primitiveType = f.primitiveType || PRIMITIVE_TYPE.TEXT;
                     } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE || f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
                         delete f.primitiveType;
                         delete f.fieldMode;
-                        f.cardTypeFilter = f.cardTypeFilter || 'Generic';
+                        f.blueprintTypeFilter = f.blueprintTypeFilter || null;
                     } else {
                         delete f.primitiveType;
-                        f.cardTypeFilter = f.cardTypeFilter || 'Generic';
+                        f.blueprintTypeFilter = f.blueprintTypeFilter || null;
                         f.fieldMode = f.fieldMode;
                     }
 
-                    // HARDENING: Normalize all instance field values to match new kind
-                    for (const instId in state.instances) {
-                        const inst = state.instances[instId];
-                        if (inst.templateId !== blueprint.id) continue;
-
-                        const val = inst.fieldValues[f.id];
-
-                        // LIST → SINGLE
-                        if (
-                            oldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST &&
-                            newKind === FIELD_KIND.INSTANTIATOR
-                        ) {
-                            if (Array.isArray(val) && val.length > 0) {
-                                hasData = true;
-                                affectedCount++;
-                            }
-                        }
-
-                        // ENTITY/LIST → PRIMITIVE
-                        else if (
-                            (oldKind === FIELD_KIND.INSTANCE_REFERENCE || oldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) &&
-                            newKind === FIELD_KIND.PRIMITIVE
-                        ) {
-                            if (Array.isArray(val) && val.length > 0) {
-                                hasData = true;
-                                affectedCount++;
-                            }
-                        }
-
-                        // PRIMITIVE → ANY REF
-                        else if (
-                            oldKind === FIELD_KIND.PRIMITIVE &&
-                            (newKind === FIELD_KIND.INSTANTIATOR ||
-                                newKind === FIELD_KIND.INSTANTIATOR_LIST ||
-                                newKind === FIELD_KIND.INSTANCE_REFERENCE ||
-                                newKind === FIELD_KIND.INSTANCE_REFERENCE_LIST)
-                        ) {
-                            if (val !== null && val !== '' && val !== 0) {
-                                hasData = true;
-                                affectedCount++;
-                            }
-                        }
-
-                        // REF ↔ REF transitions
-                        else if (
-                            (oldKind === FIELD_KIND.INSTANTIATOR ||
-                                oldKind === FIELD_KIND.INSTANTIATOR_LIST ||
-                                oldKind === FIELD_KIND.INSTANCE_REFERENCE ||
-                                oldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) &&
-                            (newKind === FIELD_KIND.INSTANTIATOR ||
-                                newKind === FIELD_KIND.INSTANTIATOR_LIST ||
-                                newKind === FIELD_KIND.INSTANCE_REFERENCE ||
-                                newKind === FIELD_KIND.INSTANCE_REFERENCE_LIST)
-                        ) {
-                            if (
-                                (typeof val === 'string' && val) ||
-                                (Array.isArray(val) && val.length > 0)
-                            ) {
-                                hasData = true;
-                                affectedCount++;
-                            }
-                        }
-                    }
-
-                    // CRITICAL: Initialize field values for new kind
+                    // Clear all field values for this field
                     for (const instId in state.instances) {
                         const inst = state.instances[instId];
                         if (inst.templateId !== blueprint.id) continue;
 
                         // Initialize based on new field kind
                         if (newKind === FIELD_KIND.PRIMITIVE) {
-                            // Primitive: empty string or 0
                             const primType = f.primitiveType || PRIMITIVE_TYPE.TEXT;
                             inst.fieldValues[f.id] = primType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
                         } else if (newKind === FIELD_KIND.INSTANTIATOR_LIST || newKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
-                            // Lists: empty array
                             inst.fieldValues[f.id] = [];
                         } else if (newKind === FIELD_KIND.INSTANTIATOR || newKind === FIELD_KIND.INSTANCE_REFERENCE) {
-                            // Single references: null
                             inst.fieldValues[f.id] = null;
                         }
                     }
@@ -3919,60 +4370,13 @@
                         renderAll();
                     };
                     fd.appendChild(psel);
-                } else if (f.fieldKind !== FIELD_KIND.INSTANCE_REFERENCE && f.fieldKind !== FIELD_KIND.INSTANCE_REFERENCE_LIST) {  // ← MODIFIED
-                    // instantiator/instantiatorList: type filter + mode
-                    const filterSel = document.createElement('select');
-                    const types = Array.from(new Set(state.blueprints.map(tt => tt.type || 'Generic'))).filter(t => t !== 'Root');
-                    for (const ty of types) {
-                        const o = document.createElement('option');
-                        o.value = ty;
-                        o.textContent = ty;
-                        filterSel.appendChild(o);
-                    }
-                    filterSel.value = f.cardTypeFilter || types[0] || 'Generic';
-                    filterSel.onchange = () => {
-                        pushUndo();
-                        f.cardTypeFilter = filterSel.value;
-                        save();
-                        renderAll();
-                    };
+                } else if (f.fieldKind !== FIELD_KIND.INSTANCE_REFERENCE && f.fieldKind !== FIELD_KIND.INSTANCE_REFERENCE_LIST) {
+                    // instantiator/instantiatorList: type filter
+                    const filterSel = renderBlueprintTypeFilterDropdown(f, blueprint);
                     fd.appendChild(filterSel);
-
-                    /*const modeSel = document.createElement('select');
-                    modeSel.title = 'Contain: owns children | Reference: links to existing';
-                    const containOpt = document.createElement('option');
-                    containOpt.value = FIELD_MODE.CONTAIN;
-                    containOpt.textContent = 'Contain';
-                    const refOpt = document.createElement('option');
-                    refOpt.value = FIELD_MODE.REFERENCE;
-                    refOpt.textContent = 'Reference';
-                    modeSel.appendChild(containOpt);
-                    modeSel.appendChild(refOpt);
-                    modeSel.value = f.fieldMode || FIELD_MODE.CONTAIN;
-                    modeSel.onchange = () => {
-                        pushUndo();
-                        f.fieldMode = modeSel.value;
-                        save();
-                        renderAll();
-                    };
-                    fd.appendChild(modeSel);*/
                 } else {
-                    // instanceReference or instanceReferenceList: just type filter
-                    const filterSel = document.createElement('select');
-                    const types = Array.from(new Set(state.blueprints.map(tt => tt.type || 'Generic'))).filter(t => t !== 'Root');
-                    for (const ty of types) {
-                        const o = document.createElement('option');
-                        o.value = ty;
-                        o.textContent = ty;
-                        filterSel.appendChild(o);
-                    }
-                    filterSel.value = f.cardTypeFilter || types[0] || 'Generic';
-                    filterSel.onchange = () => {
-                        pushUndo();
-                        f.cardTypeFilter = filterSel.value;
-                        save();
-                        renderAll();
-                    };
+                    // instanceReference or instanceReferenceList: type filter
+                    const filterSel = renderBlueprintTypeFilterDropdown(f, blueprint);
                     fd.appendChild(filterSel);
                 }
 
@@ -4073,11 +4477,50 @@
         // ============================================================================
 
         function renderInstanceBlueprint(inst, parentInst, parentField, origin, visited) {
+
             if (visited.has(inst.id)) {
                 const card = document.createElement('div');
                 card.className = 'instance-card';
                 card.style.borderColor = 'var(--danger)';
-                card.innerHTML = '<div style="padding:10px;color:var(--danger)">⚠️ Circular reference</div>';
+
+                const content = document.createElement('div');
+                content.style.padding = '10px';
+                content.style.color = 'var(--danger)';
+                content.style.display = 'flex';
+                content.style.justifyContent = 'space-between';
+                content.style.alignItems = 'center';
+
+                const msg = document.createElement('span');
+                msg.textContent = '⚠️ Circular reference';
+                content.appendChild(msg);
+
+                // Add delete button if we have parent context
+                if (parentInst && parentField) {
+                    const rmBtn = document.createElement('button');
+                    rmBtn.className = 'btn small danger';
+                    rmBtn.textContent = '×';
+                    rmBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if (confirm('Remove this circular reference?')) {
+                            pushUndo();
+
+                            if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                                parentInst.fieldValues[parentField.id] = null;
+                            } else if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                                const arr = parentInst.fieldValues[parentField.id];
+                                if (Array.isArray(arr)) {
+                                    parentInst.fieldValues[parentField.id] = arr.filter(id => id !== inst.id);
+                                }
+                            }
+
+                            save();
+                            renderAll();
+                        }
+                    };
+                    content.appendChild(rmBtn);
+                }
+
+                card.appendChild(content);
                 return card;
             }
             visited.add(inst.id);
@@ -4105,15 +4548,15 @@
             const card = document.createElement('div');
             card.className = 'instance-card';
             if (origin === 'static') card.classList.add('static-child');
-            if (origin === 'reference') card.classList.add('reference-child');
-            if (templateDeleted) card.classList.add('deleted-blueprint');
-
-            // HARDENING: Mark static ghosts (should not appear in runtime)
-            if (isStaticInstanceShape(inst)) {
-                card.classList.add('static-ghost');
-                card.title = 'CRITICAL: Static shape in runtime (should not happen)';
-                card.style.borderColor = 'var(--danger)';
+            if (origin === 'reference') {
+                const isOrphaned = isInstanceOrphaned(inst.id);
+                if (isOrphaned) {
+                    card.classList.add('orphaned-reference-child');
+                } else {
+                    card.classList.add('reference-child');
+                }
             }
+            if (templateDeleted) card.classList.add('deleted-blueprint');
 
             if (editorCollapsed[inst.id] === undefined) {
                 editorCollapsed[inst.id] = true;
@@ -4172,21 +4615,12 @@
                 headerLeft.appendChild(typeSpan);
             }
 
-            //This needs to be fixed - FIX ME
-            if (origin === 'static') {
-                const lockIcon = document.createElement('span');
-                lockIcon.className = 'lock-icon';
-                lockIcon.textContent = '🔒';
-                lockIcon.title = 'Defined by blueprint';
-                headerLeft.appendChild(lockIcon);
-            }
-
-            //This needs to be fixed - FIX ME
+            // Show reference icon for linked (not owned) instances
             if (origin === 'reference') {
                 const refIcon = document.createElement('span');
                 refIcon.className = 'reference-icon';
                 refIcon.textContent = '🔗';
-                refIcon.title = 'Referenced instance';
+                refIcon.title = 'Referenced instance (not owned by this parent)';
                 headerLeft.appendChild(refIcon);
             }
 
@@ -4235,21 +4669,19 @@
                                     }
                                 }
 
-                                if (true) {
-                                    const val = checkInst.fieldValues[checkField.id];
-                                    if (checkField.fieldKind === FIELD_KIND.INSTANTIATOR && val === inst.id) {
-                                        referencingInstances.push({
-                                            instanceId: checkId,
-                                            fieldName: checkField.name,
-                                            fieldKind: checkField.fieldKind
-                                        });
-                                    } else if (checkField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val) && val.includes(inst.id)) {
-                                        referencingInstances.push({
-                                            instanceId: checkId,
-                                            fieldName: checkField.name,
-                                            fieldKind: checkField.fieldKind
-                                        });
-                                    }
+                                const val = checkInst.fieldValues[checkField.id];
+                                if (checkField.fieldKind === FIELD_KIND.INSTANTIATOR && val === inst.id) {
+                                    referencingInstances.push({
+                                        instanceId: checkId,
+                                        fieldName: checkField.name,
+                                        fieldKind: checkField.fieldKind
+                                    });
+                                } else if (checkField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val) && val.includes(inst.id)) {
+                                    referencingInstances.push({
+                                        instanceId: checkId,
+                                        fieldName: checkField.name,
+                                        fieldKind: checkField.fieldKind
+                                    });
                                 }
                             }
                         }
@@ -4268,21 +4700,19 @@
                     if (confirm(confirmMsg)) {
                         pushUndo();
 
-                        if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR) {
-                            parentInst.fieldValues[parentField.id] = null;
-                        } else if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
-                            const arr = parentInst.fieldValues[parentField.id];
-                            if (Array.isArray(arr)) {
-                                if (true) {
-                                    // HARDENING: Reference removal only
+                        if (origin === 'reference') {
+                            // For references, just unlink (don't delete the instance)
+                            if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                                parentInst.fieldValues[parentField.id] = null;
+                            } else if (parentField.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                                const arr = parentInst.fieldValues[parentField.id];
+                                if (Array.isArray(arr)) {
                                     parentInst.fieldValues[parentField.id] = arr.filter(id => id !== inst.id);
-                                } else {
-                                    // FIXED: Array contains IDs now, not objects
-                                    parentInst.fieldValues[parentField.id] = arr.filter(id => id !== inst.id);
-                                    // HARDENING: Delete instance only if contain-mode
-                                    if (origin !== 'reference') deleteInstance(inst.id);
                                 }
                             }
+                        } else {
+                            // For owned instances, actually delete
+                            deleteInstance(inst.id);
                         }
 
                         save();
@@ -4357,15 +4787,6 @@
                 const label = document.createElement('div');
                 label.className = 'field-key';
                 label.textContent = f.name;
-
-                /*if (isFieldStatic(blueprint, f)) {
-                    const lockIcon = document.createElement('span');
-                    lockIcon.className = 'lock-icon';
-                    lockIcon.textContent = '🔒';
-                    lockIcon.title = 'Defined by blueprint';
-                    lockIcon.style.marginLeft = '4px';
-                    label.appendChild(lockIcon);
-                }*/
 
                 const control = document.createElement('div');
                 control.style.flex = '1';
@@ -4513,160 +4934,6 @@
                         const chipsOuterContainer = document.createElement('div');
                         chipsOuterContainer.style.marginBottom = '6px';
 
-                        for (const refId of ids) {
-                            // Container for chip + expanded view
-                            const chipContainer = document.createElement('div');
-                            chipContainer.className = 'chip-container';
-
-                            const chip = document.createElement('div');
-                            chip.className = 'entityref-chip';
-                            chip.style.display = 'flex';
-                            chip.style.alignItems = 'center';
-
-                            const target = findInstanceById(refId);
-                            if (!target) chip.classList.add('broken');
-
-                            const targetBlueprint = target ? findBlueprintById(target.templateId) : null;
-                            const isExpanded = isChipExpanded(inst.id, f.id, refId);
-
-                            // Twisty (expand/collapse indicator)
-                            const twisty = document.createElement('span');
-                            twisty.className = 'chip-twisty';
-                            if (target) {
-                                twisty.classList.add('expandable');
-                                twisty.textContent = isExpanded ? '▾' : '▸';
-                                twisty.title = isExpanded ? 'Click to collapse' : 'Click to expand';
-                                twisty.onclick = (e) => {
-                                    e.stopPropagation();
-                                    toggleChipExpansion(inst.id, f.id, refId);
-                                };
-                            } else {
-                                twisty.textContent = '⚠️';
-                                twisty.title = 'Broken reference';
-                            }
-
-                            chip.appendChild(twisty);
-
-                            const chipContent = document.createElement('span');
-
-                            // Chip labeling: use smart labels
-                            const chipLabel = getInstanceLabel(refId);
-                            chipContent.textContent = chipLabel;
-                            chipContent.style.cursor = target ? 'pointer' : 'default';
-                            chipContent.style.flex = '1';
-
-                            // Navigate on click (only on label, not twisty)
-                            if (target) {
-                                chipContent.onclick = (e) => {
-                                    e.stopPropagation();
-                                    handleEntityRefNavigate(refId);
-                                };
-                                chipContent.onmouseenter = () => {
-                                    chipContent.style.textDecoration = 'underline';
-                                };
-                                chipContent.onmouseleave = () => {
-                                    chipContent.style.textDecoration = 'none';
-                                };
-                            }
-
-                            chip.appendChild(chipContent);
-
-                            // Type indicator (subtle)
-                            if (target && targetBlueprint) {
-                                const typeSpan = document.createElement('span');
-                                typeSpan.className = 'muted';
-                                typeSpan.textContent = ` · ${targetBlueprint.name}`;
-                                typeSpan.style.fontSize = '11px';
-                                typeSpan.style.marginRight = '4px';
-                                chip.appendChild(typeSpan);
-                            }
-
-                            // Create remove button
-                            const removeBtn = document.createElement('span');
-                            removeBtn.className = 'remove';
-                            removeBtn.textContent = '×';
-                            removeBtn.onclick = (e) => {
-                                e.stopPropagation();
-                                // HARDENING: instanceReference removal only affects pointer, never deletes target
-                                pushUndo();
-                                inst.fieldValues[f.id] = ids.filter(id => id !== refId);
-
-                                // Also remove from expanded chips set
-                                expandedChips.delete(getChipKey(inst.id, f.id, refId));
-
-                                save();
-                                renderAll();
-                            };
-
-                            chip.appendChild(removeBtn);
-
-                            chip.title = target ?
-                                `${chipLabel} · ${targetBlueprint.name}\nClick label to navigate | Click ▸ to expand` :
-                                `⚠️ Broken reference to ${refId.slice(0, 8)}`;
-
-                            chipContainer.appendChild(chip);
-
-                            // EXPANDED VIEW: Show instance fields
-                            if (isExpanded && target && targetBlueprint) {
-                                const expandedView = renderChipExpandedView(target, targetBlueprint, refId);
-                                chipContainer.appendChild(expandedView);
-                            }
-
-                            chipsOuterContainer.appendChild(chipContainer);
-                        }
-
-                        control.appendChild(chipsOuterContainer);
-
-                        if (ids.length === 0) {
-                            // Add reference button
-                            const addBtn = document.createElement('button');
-                            addBtn.className = 'btn small primary';
-                            addBtn.textContent = '🔗 Add Reference';
-                            addBtn.onclick = () => {
-                                // HARDENING: Pass current instance to exclude self and descendants
-                                showInstancePicker(f.cardTypeFilter, (selectedId) => {
-                                    pushUndo();
-                                    if (!ids.includes(selectedId)) {
-                                        ids.push(selectedId);
-                                        inst.fieldValues[f.id] = ids;
-                                    }
-                                    save();
-                                    renderAll();
-                                }, inst.id);
-                            };
-                            control.appendChild(addBtn);
-                        }
-                    }
-                } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
-                    // INSTANCE_REFERENCE_LIST: Ordered list of entity references (reuses INSTANCE_REFERENCE chip semantics)
-                    if (false /*isFieldStatic(blueprint, f)*/) {
-                        const txt = document.createElement('div');
-                        txt.textContent = '(static instanceReferenceList)';
-                        txt.className = 'muted';
-                        control.appendChild(txt);
-                    } else {
-                        let ids = inst.fieldValues?.[f.id] || [];
-
-                        // HARDENING: Ensure ids is always an array of strings (not objects)
-                        if (Array.isArray(ids)) {
-                            ids = ids.map(item => {
-                                if (typeof item === 'object' && item !== null && item.id) {
-                                    return item.id; // Extract ID from object
-                                }
-                                return item; // Already a string
-                            }).filter(id => typeof id === 'string');
-
-                            // Fix the corruption in the instance permanently
-                            if (JSON.stringify(ids) !== JSON.stringify(inst.fieldValues[f.id])) {
-                                inst.fieldValues[f.id] = ids;
-                                save();
-                            }
-                        }
-
-                        // Render existing chips with expandable containers (VERTICAL)
-                        const chipsOuterContainer = document.createElement('div');
-                        chipsOuterContainer.style.marginBottom = '6px';
-
                         for (let refId of ids) {
                             // HARDENING: Ensure refId is a string (extract ID from object if needed)
                             if (typeof refId === 'object' && refId !== null && refId.id) {
@@ -4685,108 +4952,20 @@
                             chip.className = 'entityref-chip';
                             chip.style.display = 'flex';
                             chip.style.alignItems = 'center';
-                            chip.style.gap = '4px';
 
-                            const target = findInstanceById(refId);
-                            if (!target) chip.classList.add('broken');
+                            const refStatus = getReferenceStatus(refId);
+                            if (refStatus.cssClass) chip.classList.add(refStatus.cssClass);
 
-                            const targetBlueprint = target ? findBlueprintById(target.templateId) : null;
-                            const chipIndex = ids.indexOf(refId);
-                            const isExpanded = isChipExpanded(inst.id, f.id, refId);
-
-                            // Drag handle for reordering
-                            const dragHandle = document.createElement('span');
-                            dragHandle.className = 'drag-handle';
-                            dragHandle.textContent = '⋮⋮';
-                            dragHandle.draggable = true;
-                            dragHandle.style.cursor = 'grab';
-                            dragHandle.title = 'Drag to reorder';
-
-                            dragHandle.ondragstart = (e) => {
-                                e.stopPropagation();
-                                dragHandle.style.cursor = 'grabbing';
-                                e.dataTransfer.effectAllowed = 'move';
-                                e.dataTransfer.setData('text/plain', JSON.stringify({
-                                    type: 'list-entity-ref-reorder',
-                                    instanceId: inst.id,
-                                    fieldId: f.id,
-                                    sourceIndex: chipIndex,
-                                    refId: refId
-                                }));
-                            };
-
-                            dragHandle.ondragend = (e) => {
-                                dragHandle.style.cursor = 'grab';
-                            };
-
-                            chip.ondragover = (e) => {
-                                e.preventDefault();
-                                e.dataTransfer.dropEffect = 'move';
-                                chip.style.borderTop = '2px solid var(--accent)';
-                            };
-
-                            chip.ondragleave = (e) => {
-                                chip.style.borderTop = '';
-                            };
-
-                            chip.ondrop = (e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                chip.style.borderTop = '';
-
-                                try {
-                                    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-
-                                    // Validate same field only
-                                    if (data.type !== 'list-entity-ref-reorder') return;
-                                    if (data.instanceId !== inst.id) return;
-                                    if (data.fieldId !== f.id) return;
-
-                                    const sourceIndex = data.sourceIndex;
-                                    const targetIndex = chipIndex;
-
-                                    if (sourceIndex === targetIndex) return;
-
-                                    // Reorder array
-                                    pushUndo();
-                                    const newIds = [...ids];
-                                    const [movedItem] = newIds.splice(sourceIndex, 1);
-                                    newIds.splice(targetIndex, 0, movedItem);
-                                    inst.fieldValues[f.id] = newIds;
-                                    save();
-                                    renderAll();
-
-                                } catch (err) {
-                                    console.error('Drop failed:', err);
-                                }
-                            };
-
-                            chip.appendChild(dragHandle);
-
-                            // Twisty (expand/collapse indicator)
-                            const twisty = document.createElement('span');
-                            twisty.className = 'chip-twisty';
-                            if (target) {
-                                twisty.classList.add('expandable');
-                                twisty.textContent = isExpanded ? '▾' : '▸';
-                                twisty.title = isExpanded ? 'Click to collapse' : 'Click to expand';
-                                twisty.onclick = (e) => {
-                                    e.stopPropagation();
-                                    toggleChipExpansion(inst.id, f.id, refId);
-                                };
-                            } else {
-                                twisty.textContent = '⚠️';
-                                twisty.title = 'Broken reference';
-                            }
-
+                            const twisty = createReferenceTwisty(refId, refStatus, inst, f);
                             chip.appendChild(twisty);
 
-                            // Chip content wrapper (clickable)
                             const chipContent = document.createElement('span');
-
-                            // Chip labeling: NUMBER. smart label
                             const chipLabel = getInstanceLabel(refId);
-                            chipContent.textContent = `${chipIndex + 1}. ${chipLabel}`;
+                            chipContent.textContent = chipLabel + refStatus.labelSuffix;
+
+                            const target = findInstanceById(refId);
+                            const targetBlueprint = target ? findBlueprintById(target.templateId) : null;
+                            const isExpanded = isChipExpanded(inst.id, f.id, refId);
                             chipContent.style.cursor = target ? 'pointer' : 'default';
                             chipContent.style.flex = '1';
 
@@ -4838,6 +5017,146 @@
                             chip.appendChild(removeBtn);
 
                             chip.title = target ?
+                                `${chipLabel} · ${targetBlueprint.name}\nClick label to navigate | Click ▸ to expand` :
+                                `⚠️ Broken reference to ${refId.slice(0, 8)}`;
+
+                            chipContainer.appendChild(chip);
+
+                            // EXPANDED VIEW: Show instance fields
+                            if (isExpanded && target && targetBlueprint) {
+                                const expandedView = renderChipExpandedView(target, targetBlueprint, refId);
+                                chipContainer.appendChild(expandedView);
+                            }
+
+                            chipsOuterContainer.appendChild(chipContainer);
+                        }
+
+                        control.appendChild(chipsOuterContainer);
+
+                        if (ids.length === 0) {
+                            // Add reference button
+                            const addBtn = document.createElement('button');
+                            addBtn.className = 'btn small primary';
+                            addBtn.textContent = '🔗 Add Reference';
+                            addBtn.onclick = () => {
+                                // HARDENING: Pass current instance to exclude self and descendants
+                                showInstancePicker(f.blueprintTypeFilter, (selectedId) => {
+                                    pushUndo();
+                                    if (!ids.includes(selectedId)) {
+                                        ids.push(selectedId);
+                                        inst.fieldValues[f.id] = ids;
+                                    }
+                                    save();
+                                    renderAll();
+                                }, inst.id);
+                            };
+                            control.appendChild(addBtn);
+                        }
+                    }
+                } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) {
+                    // INSTANCE_REFERENCE_LIST: Ordered list of entity references (reuses INSTANCE_REFERENCE chip semantics)
+                    if (false /*isFieldStatic(blueprint, f)*/) {
+                        const txt = document.createElement('div');
+                        txt.textContent = '(static instanceReferenceList)';
+                        txt.className = 'muted';
+                        control.appendChild(txt);
+                    } else {
+                        let ids = inst.fieldValues?.[f.id] || [];
+
+                        // HARDENING: Ensure ids is always an array of strings (not objects)
+                        if (Array.isArray(ids)) {
+                            ids = ids.map(item => {
+                                if (typeof item === 'object' && item !== null && item.id) {
+                                    return item.id; // Extract ID from object
+                                }
+                                return item; // Already a string
+                            }).filter(id => typeof id === 'string');
+
+                            // Fix the corruption in the instance permanently
+                            if (JSON.stringify(ids) !== JSON.stringify(inst.fieldValues[f.id])) {
+                                inst.fieldValues[f.id] = ids;
+                                save();
+                            }
+                        }
+
+                        // Render existing chips with expandable containers (VERTICAL)
+                        const chipsOuterContainer = document.createElement('div');
+                        chipsOuterContainer.style.marginBottom = '6px';
+
+                        for (const refId of ids) {
+                            // Container for chip + expanded view
+                            const chipContainer = document.createElement('div');
+                            chipContainer.className = 'chip-container';
+
+                            const chip = document.createElement('div');
+                            chip.className = 'entityref-chip';
+                            chip.style.display = 'flex';
+                            chip.style.alignItems = 'center';
+
+                            const chipIndex = ids.indexOf(refId);
+
+                            const refStatus = getReferenceStatus(refId);
+                            if (refStatus.cssClass) chip.classList.add(refStatus.cssClass);
+
+                            const twisty = createReferenceTwisty(refId, refStatus, inst, f);
+                            chip.appendChild(twisty);
+
+                            const chipContent = document.createElement('span');
+                            const chipLabel = getInstanceLabel(refId);
+                            chipContent.textContent = `${chipIndex + 1}. ${chipLabel}${refStatus.labelSuffix}`;
+
+                            const target = findInstanceById(refId);
+                            const targetBlueprint = target ? findBlueprintById(target.templateId) : null;
+                            const isExpanded = isChipExpanded(inst.id, f.id, refId);
+                            chipContent.style.cursor = target ? 'pointer' : 'default';
+                            chipContent.style.flex = '1';
+
+                            // Navigate on click (only on label, not twisty)
+                            if (target) {
+                                chipContent.onclick = (e) => {
+                                    e.stopPropagation();
+                                    handleEntityRefNavigate(refId);
+                                };
+                                chipContent.onmouseenter = () => {
+                                    chipContent.style.textDecoration = 'underline';
+                                };
+                                chipContent.onmouseleave = () => {
+                                    chipContent.style.textDecoration = 'none';
+                                };
+                            }
+
+                            chip.appendChild(chipContent);
+
+                            // Type indicator (subtle)
+                            if (target && targetBlueprint) {
+                                const typeSpan = document.createElement('span');
+                                typeSpan.className = 'muted';
+                                typeSpan.textContent = ` · ${targetBlueprint.name}`;
+                                typeSpan.style.fontSize = '11px';
+                                typeSpan.style.marginRight = '4px';
+                                chip.appendChild(typeSpan);
+                            }
+
+                            // Create remove button
+                            const removeBtn = document.createElement('span');
+                            removeBtn.className = 'remove';
+                            removeBtn.textContent = '×';
+                            removeBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                // HARDENING: instanceReference removal only affects pointer, never deletes target
+                                pushUndo();
+                                inst.fieldValues[f.id] = ids.filter(id => id !== refId);
+
+                                // Also remove from expanded chips set
+                                expandedChips.delete(getChipKey(inst.id, f.id, refId));
+
+                                save();
+                                renderAll();
+                            };
+
+                            chip.appendChild(removeBtn);
+
+                            chip.title = target ?
                                 `${chipIndex + 1}. ${chipLabel} · ${targetBlueprint.name}\nDrag ⋮⋮ to reorder | Click label to navigate | Click ▸ to expand` :
                                 `⚠️ Broken reference to ${refId.slice(0, 8)}`;
 
@@ -4859,7 +5178,7 @@
                         addBtn.className = 'btn small primary';
                         addBtn.textContent = '🔗 Add Reference';
                         addBtn.onclick = () => {
-                            showInstancePicker(f.cardTypeFilter, (selectedId) => {
+                            showInstancePicker(f.blueprintTypeFilter, (selectedId) => {
                                 if (!ids.includes(selectedId)) {
                                     pushUndo();
                                     ids.push(selectedId);
@@ -4874,7 +5193,107 @@
                         control.appendChild(addBtn);
                     }
                 } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
-                    const merged = getMergedChildrenWithProvenance(blueprint, inst, f.id);
+                    // Check for broken/orphaned references BEFORE rendering children
+                    const val = inst.fieldValues[f.id];
+                    const brokenRefs = [];
+                    const orphanedRefs = [];
+
+                    if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                        if (val) {
+                            const target = findInstanceById(val);
+                            if (!target) {
+                                brokenRefs.push(val);
+                            } else if (isInstanceOrphaned(val)) {
+                                orphanedRefs.push(val);
+                            }
+                        }
+                    } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                        if (Array.isArray(val)) {
+                            for (const id of val) {
+                                const target = findInstanceById(id);
+                                if (!target) {
+                                    brokenRefs.push(id);
+                                } else if (isInstanceOrphaned(id)) {
+                                    orphanedRefs.push(id);
+                                }
+                            }
+                        }
+                    }
+
+                    // Show broken reference indicators
+                    for (const brokenId of brokenRefs) {
+                        const brokenCard = document.createElement('div');
+                        brokenCard.className = 'instance-card';
+                        brokenCard.style.borderColor = 'var(--danger)';
+                        brokenCard.style.background = 'rgba(255, 107, 107, 0.08)';
+                        brokenCard.style.padding = '10px';
+                        brokenCard.style.display = 'flex';
+                        brokenCard.style.alignItems = 'center';
+                        brokenCard.style.justifyContent = 'space-between';
+
+                        const brokenMsg = document.createElement('span');
+                        brokenMsg.style.color = 'var(--danger)';
+                        brokenMsg.textContent = `🔴 Instance ${brokenId.slice(0, 8)} (deleted)`;
+                        brokenCard.appendChild(brokenMsg);
+
+                        // Clear button
+                        const clearBtn = document.createElement('button');
+                        clearBtn.className = 'btn small danger';
+                        clearBtn.textContent = '×';
+                        clearBtn.title = 'Clear broken reference';
+                        clearBtn.onclick = () => {
+                            pushUndo();
+                            if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                                inst.fieldValues[f.id] = null;
+                            } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                                inst.fieldValues[f.id] = inst.fieldValues[f.id].filter(id => id !== brokenId);
+                            }
+                            save();
+                            renderAll();
+                        };
+                        brokenCard.appendChild(clearBtn);
+
+                        control.appendChild(brokenCard);
+                    }
+
+                    // Show orphaned reference indicators (YELLOW)
+                    for (const orphanedId of orphanedRefs) {
+                        const orphanCard = document.createElement('div');
+                        orphanCard.className = 'instance-card';
+                        orphanCard.style.borderColor = 'var(--warning)';
+                        orphanCard.style.background = 'rgba(251, 191, 36, 0.08)';
+                        orphanCard.style.padding = '10px';
+                        orphanCard.style.display = 'flex';
+                        orphanCard.style.alignItems = 'center';
+                        orphanCard.style.justifyContent = 'space-between';
+
+                        const orphanMsg = document.createElement('span');
+                        orphanMsg.style.color = 'var(--warning)';
+                        orphanMsg.textContent = `⚠️ Instance ${orphanedId.slice(0, 8)} (orphaned)`;
+                        orphanCard.appendChild(orphanMsg);
+
+                        // Clear button
+                        const clearBtn = document.createElement('button');
+                        clearBtn.className = 'btn small';
+                        clearBtn.textContent = '×';
+                        clearBtn.title = 'Clear orphaned reference';
+                        clearBtn.onclick = () => {
+                            pushUndo();
+                            if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                                inst.fieldValues[f.id] = null;
+                            } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                                inst.fieldValues[f.id] = inst.fieldValues[f.id].filter(id => id !== orphanedId);
+                            }
+                            save();
+                            renderAll();
+                        };
+                        orphanCard.appendChild(clearBtn);
+
+                        control.appendChild(orphanCard);
+                    }
+
+                    const merged = getMergedChildrenWithProvenance(blueprint, inst, f.id)
+                        .filter(item => !isInstanceOrphaned(item.child.id));
 
                     for (const item of merged) {
                         // HARDENING: Skip static shapes in runtime rendering
@@ -4887,154 +5306,206 @@
                             continue;
                         }
 
+                        // CRITICAL: Only track visited for OWNED children (origin = 'dynamic')
+                        // Referenced children should not contribute to cycle detection
+                        const childVisited = item.origin === 'dynamic' ? visited : new Set();
+
                         const childBlueprint = renderInstanceBlueprint(
-                            item.child, inst, f, item.origin, new Set(visited)
+                            item.child, inst, f, item.origin, childVisited
                         );
                         control.appendChild(childBlueprint);
                     }
 
                     //if (!isFieldStatic(blueprint, f)) {
-                    if (true) {
-                        const btnRow = document.createElement('div');
-                        btnRow.style.display = 'flex';
-                        btnRow.style.gap = '6px';
+                    const btnRow = document.createElement('div');
+                    btnRow.style.display = 'flex';
+                    btnRow.style.gap = '6px';
 
-                        if ((f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) && merged.length === 0) {
-                            if (true) {
-                                const moveBtn = document.createElement('button');
-                                moveBtn.className = 'btn small primary';
-                                moveBtn.textContent = '↪️ Move Instance Here';
-                                moveBtn.title = 'Move an orphan or instance here';
-                                moveBtn.onclick = () => {
-                                    showInstancePicker(f.cardTypeFilter, (selectedId) => {
-                                        pushUndo();
-                                        const result = moveInstance(selectedId, inst.id, f.id);
-                                        if (!result.success) {
-                                            alert('Move failed: ' + result.error);
-                                        } else {
-                                            console.log(`Moved instance ${selectedId.slice(0, 8)} to ${inst.id.slice(0, 8)}.${f.name}`);
-                                        }
-                                        save();
-                                        renderAll();
-                                    }, inst.id, false);  // showOnlyOrphans = true
-                                };
-                                btnRow.appendChild(moveBtn);
-                            }
-                            if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
-                                const linkBtn = document.createElement('button');
-                                linkBtn.className = 'btn small primary';
-                                linkBtn.textContent = '🔗 Link Instance';
-                                linkBtn.onclick = () => {
-                                    // HARDENING: Exclude self and descendants
-                                    showInstancePicker(f.cardTypeFilter, (selectedId) => {
-                                        pushUndo();
-                                        inst.fieldValues[f.id] = selectedId;
-                                        save();
-                                        renderAll();
-                                    }, inst.id);
-                                };
-                                btnRow.appendChild(linkBtn);
-                            }
-
-                            const sel = document.createElement('select');
-                            sel.classList.add('valueInputDark');
-                            const emptyOpt = document.createElement('option');
-                            emptyOpt.value = '';
-                            emptyOpt.textContent = isReferenceField(f) || isContainField ? 'Create New...' : 'Add...';
-                            sel.appendChild(emptyOpt);
-                            for (const cand of state.blueprints.filter(tt => tt.type === f.cardTypeFilter && tt.type !== 'Root')) {
-                                const o = document.createElement('option');
-                                o.value = cand.id;
-                                o.textContent = cand.name;
-                                sel.appendChild(o);
-                            }
-                            sel.onchange = () => {
-                                if (!sel.value) return;
+                    if ((f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) && merged.length === 0) {
+                        const moveBtn = document.createElement('button');
+                        moveBtn.className = 'btn small primary';
+                        moveBtn.textContent = '↪️ Move Instance Here';
+                        moveBtn.title = 'Move an orphan or instance here';
+                        moveBtn.onclick = () => {
+                            showInstancePicker(f.blueprintTypeFilter, (selectedId) => {
                                 pushUndo();
-                                const newInst = createInstance(sel.value, inst.id, f.id);
+                                const result = moveInstance(selectedId, inst.id, f.id);
+                                if (!result.success) {
+                                    alert('Move failed: ' + result.error);
+                                } else {
+                                    console.log(`Moved instance ${selectedId.slice(0, 8)} to ${inst.id.slice(0, 8)}.${f.name}`);
+                                }
+                                save();
+                                renderAll();
+                            }, inst.id, false);  // showOnlyOrphans = true
+                        };
+                        btnRow.appendChild(moveBtn);
+                        if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                            const linkBtn = document.createElement('button');
+                            linkBtn.className = 'btn small primary';
+                            linkBtn.textContent = '🔗 Link Instance';
+                            linkBtn.onclick = () => {
+                                // HARDENING: Exclude self and descendants
+                                showInstancePicker(f.blueprintTypeFilter, (selectedId) => {
+                                    pushUndo();
+                                    inst.fieldValues[f.id] = selectedId;
+                                    save();
+                                    renderAll();
+                                }, inst.id);
+                            };
+                            btnRow.appendChild(linkBtn);
+                        }
+
+                        const sel = document.createElement('select');
+                        sel.classList.add('valueInputDark');
+
+                        const emptyOpt = document.createElement('option');
+                        emptyOpt.value = '';
+                        const filterType = f.blueprintTypeFilter;
+
+                        // Check filter validity
+                        const validTypes = new Set(
+                            state.blueprints
+                                .map(t => t.type)
+                                .filter(t => t && typeof t === 'string' && t.trim() !== '' && t !== 'Root')
+                        );
+
+                        const hasNoFilter = !filterType || filterType === null || filterType === '';
+                        const filterOrphaned = filterType && !validTypes.has(filterType);
+
+                        if (hasNoFilter) {
+                            emptyOpt.textContent = '⚠️ No type selected';
+                            emptyOpt.style.color = 'var(--warning)';
+                            sel.disabled = true;
+                            sel.style.cssText = 'border: 1px solid var(--warning) !important; background: rgba(251, 191, 36, 0.08) !important;';
+                            sel.title = 'Blueprint field has no type filter - edit blueprint to fix';
+                        } else if (filterOrphaned) {
+                            emptyOpt.textContent = `🔴 Category "${filterType}" not found`;
+                            emptyOpt.style.color = 'var(--danger)';
+                            sel.disabled = true;
+                            sel.style.cssText = 'border: 1px solid var(--danger) !important; background: rgba(255, 107, 107, 0.08) !important;';
+                            sel.title = `Blueprint type "${filterType}" no longer exists - edit blueprint to fix`;
+                        } else {
+                            emptyOpt.textContent = `Create new instance of category: "${filterType}"`;
+                        }
+
+                        sel.appendChild(emptyOpt);
+                        for (const cand of state.blueprints.filter(tt => tt.type === f.blueprintTypeFilter && tt.type !== 'Root')) {
+                            const o = document.createElement('option');
+                            o.value = cand.id;
+                            o.textContent = cand.name;
+                            sel.appendChild(o);
+                        }
+                        sel.onchange = () => {
+                            if (!sel.value) return;
+                            pushUndo();
+                            const newInst = createInstance(sel.value, inst.id, f.id);
+                            if (newInst) editorCollapsed[newInst.id] = true;
+                            // HARDENING: Always modify registry instance, not embedded copy
+                            const registryParent = state.instances[inst.id];
+
+                            // FIXED: Both contain and reference mode now store IDs
+                            if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
+                                registryParent.fieldValues[f.id] = newInst.id;
+                            } else {
+                                if (!Array.isArray(registryParent.fieldValues[f.id])) {
+                                    registryParent.fieldValues[f.id] = [];
+                                }
+                                registryParent.fieldValues[f.id].push(newInst.id);
+                            }
+
+                            save();
+                            renderAll();
+                        };
+                        btnRow.appendChild(sel);
+                        control.appendChild(btnRow);
+                    } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
+                        const addRow = document.createElement('div');
+                        addRow.style.display = 'flex';
+                        addRow.style.gap = '6px';
+                        addRow.style.marginTop = '6px';
+
+                        const moveBtn = document.createElement('button');
+                        moveBtn.className = 'btn small primary';
+                        moveBtn.textContent = '↪️ Move Instance Here';
+                        moveBtn.title = 'Move an orphan or instance here';
+                        moveBtn.onclick = () => {
+                            showInstancePicker(f.blueprintTypeFilter, (selectedId) => {
+                                pushUndo();
+                                const result = moveInstance(selectedId, inst.id, f.id);
+                                if (!result.success) {
+                                    alert('Move failed: ' + result.error);
+                                } else {
+                                    console.log(`Moved instance ${selectedId.slice(0, 8)} to ${inst.id.slice(0, 8)}.${f.name}`);
+                                }
+                                save();
+                                renderAll();
+                            }, inst.id, false);  // showOnlyOrphans = true
+                        };
+                        addRow.appendChild(moveBtn);
+
+                        const addSel = document.createElement('select');
+                        addSel.classList.add('valueInputDark');
+                        const emptyOpt = document.createElement('option');
+                        emptyOpt.value = '';
+                        const filterType = f.blueprintTypeFilter;
+
+                        // Check filter validity
+                        const validTypes = new Set(
+                            state.blueprints
+                                .map(t => t.type)
+                                .filter(t => t && typeof t === 'string' && t.trim() !== '' && t !== 'Root')
+                        );
+
+                        const hasNoFilter = !filterType || filterType === null || filterType === '';
+                        const filterOrphaned = filterType && !validTypes.has(filterType);
+
+                        if (hasNoFilter) {
+                            emptyOpt.textContent = '⚠️ No type selected';
+                            emptyOpt.style.color = 'var(--warning)';
+                            addSel.disabled = true;
+                            addSel.style.cssText = 'border: 1px solid var(--warning) !important; background: rgba(251, 191, 36, 0.08) !important;';
+                            addSel.title = 'Blueprint field has no type filter - edit blueprint to fix';
+                        } else if (filterOrphaned) {
+                            emptyOpt.textContent = `🔴 Category "${filterType}" not found`;
+                            emptyOpt.style.color = 'var(--danger)';
+                            addSel.disabled = true;
+                            addSel.style.cssText = 'border: 1px solid var(--danger) !important; background: rgba(255, 107, 107, 0.08) !important;';
+                            addSel.title = `Blueprint type "${filterType}" no longer exists - edit blueprint to fix`;
+                        } else {
+                            emptyOpt.textContent = `Create new instance of category: "${filterType}"`;
+                        }
+
+                        addSel.appendChild(emptyOpt);
+                        for (const cand of state.blueprints.filter(tt => tt.type === f.blueprintTypeFilter && tt.type !== 'Root')) {
+                            const o = document.createElement('option');
+                            o.value = cand.id;
+                            o.textContent = cand.name;
+                            addSel.appendChild(o);
+                        }
+                        addSel.onchange = () => {
+                            if (!addSel.value) return;
+                            pushUndo();
+                            const ni = createInstance(addSel.value, inst.id, f.id);
+                            if (ni) {
+                                editorCollapsed[ni.id] = true;
 
                                 // HARDENING: Always modify registry instance, not embedded copy
                                 const registryParent = state.instances[inst.id];
 
-                                // FIXED: Both contain and reference mode now store IDs
-                                if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
-                                    registryParent.fieldValues[f.id] = newInst.id;
-                                } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
-                                    if (!Array.isArray(registryParent.fieldValues[f.id])) {
-                                        registryParent.fieldValues[f.id] = [];
-                                    }
-                                    registryParent.fieldValues[f.id].push(newInst.id);
+                                // HARDENING: Initialize field as array if missing or invalid
+                                if (!Array.isArray(registryParent.fieldValues[f.id])) {
+                                    registryParent.fieldValues[f.id] = [];
                                 }
 
-                                if (newInst) editorCollapsed[newInst.id] = true;
-                                save();
-                                renderAll();
-                            };
-                            btnRow.appendChild(sel);
-                            control.appendChild(btnRow);
-                        } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
-                            const addRow = document.createElement('div');
-                            addRow.style.display = 'flex';
-                            addRow.style.gap = '6px';
-                            addRow.style.marginTop = '6px';
-
-                            if (true) {
-                                const moveBtn = document.createElement('button');
-                                moveBtn.className = 'btn small primary';
-                                moveBtn.textContent = '↪️ Move Instance Here';
-                                moveBtn.title = 'Move an orphan or instance here';
-                                moveBtn.onclick = () => {
-                                    showInstancePicker(f.cardTypeFilter, (selectedId) => {
-                                        pushUndo();
-                                        const result = moveInstance(selectedId, inst.id, f.id);
-                                        if (!result.success) {
-                                            alert('Move failed: ' + result.error);
-                                        } else {
-                                            console.log(`Moved instance ${selectedId.slice(0, 8)} to ${inst.id.slice(0, 8)}.${f.name}`);
-                                        }
-                                        save();
-                                        renderAll();
-                                    }, inst.id, false);  // showOnlyOrphans = true
-                                };
-                                addRow.appendChild(moveBtn);
+                                // Push new instance ID
+                                registryParent.fieldValues[f.id].push(ni.id);
                             }
-
-                            const addSel = document.createElement('select');
-                            addSel.classList.add('valueInputDark');
-                            const emptyOpt = document.createElement('option');
-                            emptyOpt.value = '';
-                            emptyOpt.textContent = isReferenceField(f) || isContainField(f) ? 'Create New...' : 'Add...';
-                            addSel.appendChild(emptyOpt);
-                            for (const cand of state.blueprints.filter(tt => tt.type === f.cardTypeFilter && tt.type !== 'Root')) {
-                                const o = document.createElement('option');
-                                o.value = cand.id;
-                                o.textContent = cand.name;
-                                addSel.appendChild(o);
-                            }
-                            addSel.onchange = () => {
-                                if (!addSel.value) return;
-                                pushUndo();
-                                const ni = createInstance(addSel.value, inst.id, f.id);
-                                if (ni) {
-                                    editorCollapsed[ni.id] = true;
-
-                                    // HARDENING: Always modify registry instance, not embedded copy
-                                    const registryParent = state.instances[inst.id];
-
-                                    // HARDENING: Initialize field as array if missing or invalid
-                                    if (!Array.isArray(registryParent.fieldValues[f.id])) {
-                                        registryParent.fieldValues[f.id] = [];
-                                    }
-
-                                    // Push new instance ID
-                                    registryParent.fieldValues[f.id].push(ni.id);
-                                }
-                                save();
-                                renderAll();
-                            };
-                            addRow.appendChild(addSel);
-                            control.appendChild(addRow);
-                        }
+                            save();
+                            renderAll();
+                        };
+                        addRow.appendChild(addSel);
+                        control.appendChild(addRow);
                     }
                 }
 
@@ -5082,7 +5553,12 @@
 
             if (confirm(confirmMsg)) {
                 pushUndo();
+                const deletedIds = new Set(orphans);
                 orphans.forEach(id => delete state.instances[id]);
+
+                // CRITICAL: Clean up references to deleted instances
+                cleanupReferences(deletedIds);
+
                 save();
                 renderAll();
                 alert(`✅ Deleted ${orphans.length} orphaned instance(s).`);
