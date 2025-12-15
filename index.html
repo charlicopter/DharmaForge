@@ -185,17 +185,21 @@
         }
 
         .field-line {
+            background: transparent;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 1;
             display: flex;
-            gap: 8px;
-            align-items: flex-start;
-            padding: 6px;
+            gap: 6px;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         .field-key {
             min-width: 100px;
             max-width: 180px;
             color: var(--muted);
-            font-size: 13px;
+            font-size: 12px;
             flex-shrink: 0;
 
             /* critical */
@@ -227,13 +231,17 @@
         textarea {
             background: #071018;
             border: 1px solid var(--border);
-            padding: 6px;
-            border-radius: 6px;
+            padding: 4px 6px;
+            border-radius: 4px;
             color: var(--text);
             outline: none;
             min-width: 0;
             width: 100%;
-            box-sizing: border-box
+            box-sizing: border-box;
+            line-height: 1.2;
+            font-size: 13px;
+            height: auto;
+            margin: 0;
         }
 
         select option {
@@ -338,11 +346,11 @@
         .field-def {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             padding: 8px;
-            border-radius: 8px;
+            border-radius: 6px;
             background: rgba(255, 255, 255, 0.01);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             border: 1px solid var(--border)
         }
 
@@ -1146,6 +1154,23 @@
             rootInstanceId: null
         };
 
+        // ============================================================================
+        // PERFORMANCE CACHING
+        // ============================================================================
+
+        // Cache for blueprint lookups (invalidated when blueprints change)
+        let blueprintMap = null;
+
+        // Cache for reachability checks (invalidated when structure changes)
+        let reachabilityCache = null;
+        let reachabilityCacheDirty = true;
+
+        // Debounce timer for saves
+        let saveTimeout = null;
+
+        // Last saved state (for skip-if-unchanged optimization)
+        let lastSavedStateStr = null;
+
         let undoStack = [];
         let redoStack = [];
         let navHistory = [];
@@ -1416,7 +1441,24 @@
 
         function save() {
             console.log('💾 SAVE() called from:', new Error().stack.split('\n')[2]);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+            const stateStr = JSON.stringify(state);
+
+            // Skip if nothing changed
+            if (stateStr === lastSavedStateStr) {
+                console.log('💾 SAVE skipped - no changes');
+                return;
+            }
+
+            localStorage.setItem(STORAGE_KEY, stateStr);
+            lastSavedStateStr = stateStr;
+        }
+
+        function debouncedSave(delay = 300) {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                save();
+            }, delay);
         }
 
         function load() {
@@ -1425,6 +1467,10 @@
             try {
                 state = JSON.parse(raw);
                 migrateState(state);
+
+                invalidateBlueprintMap();
+                invalidateReachabilityCache();
+                lastSavedStateStr = raw;
 
                 // HARDENING: Ensure all field values match their field kinds
                 // HARDENING: Ensure all field values match their field kinds + normalize to IDs
@@ -1733,7 +1779,30 @@
         // ============================================================================
 
         function findBlueprintById(id) {
-            return state.blueprints.find(t => t.id === id);
+            // Use cached map for O(1) lookup instead of O(n) linear search
+            if (!blueprintMap) {
+                rebuildBlueprintMap();
+            }
+            return blueprintMap.get(id);
+        }
+
+        //??? Unused?
+        function addBlueprint(blueprint) {
+            state.blueprints.push(blueprint);
+            invalidateBlueprintMap();
+            save();
+            renderAll();
+        }
+
+        function rebuildBlueprintMap() {
+            blueprintMap = new Map();
+            for (const bp of state.blueprints) {
+                blueprintMap.set(bp.id, bp);
+            }
+        }
+
+        function invalidateBlueprintMap() {
+            blueprintMap = null;
         }
 
         /**
@@ -1878,17 +1947,13 @@
 
         // HARDENING: Register instance with validation
         function registerInstance(inst) {
-            if (!inst || !inst.id) {
-                console.error('Cannot register instance without ID');
-                return;
-            }
-
-            if (state.instances[inst.id] && state.instances[inst.id] !== inst) {
-                console.warn('Registering instance with duplicate ID:', inst.id);
-            }
-
-            state.instances[inst.id] = inst;
-        }
+    if (!inst || !inst.id) {
+        console.error('Cannot register instance without ID');
+        return;
+    }
+    state.instances[inst.id] = inst;
+    invalidateReachabilityCache();  // ADD THIS LINE
+}
 
         // ============================================================================
         // INSTANCE CREATION
@@ -1941,10 +2006,22 @@
  */
         function isInstanceOrphaned(instanceId) {
             if (!instanceId || instanceId === state.rootInstanceId) return false;
-            if (!state.instances[instanceId]) return false; // Doesn't exist = not orphaned, it's deleted
+            if (!state.instances[instanceId]) return false;
 
-            const reachable = collectReachableInstances();
+            const reachable = getReachableInstances();  // Use cache!
             return !reachable.has(instanceId);
+        }
+
+        function getReachableInstances() {
+            if (reachabilityCacheDirty || !reachabilityCache) {
+                reachabilityCache = collectReachableInstances();
+                reachabilityCacheDirty = false;
+            }
+            return reachabilityCache;
+        }
+
+        function invalidateReachabilityCache() {
+            reachabilityCacheDirty = true;
         }
 
         // ============================================================================
@@ -2050,6 +2127,10 @@
             } catch (err) {
                 console.error('🚨 cleanupReferences failed:', err);
             }
+
+            invalidateReachabilityCache();  // ADD THIS LINE
+            save();
+            renderAll();
         }
 
         function cleanupReferences(deletedIds) {
@@ -2552,9 +2633,9 @@
         // FIELD MANAGEMENT (HARDENED)
         // ============================================================================
 
-        function addField(templateId, field) {
+        function addField(blueprintId, field) {
             pushUndo();
-            const blueprint = findBlueprintById(templateId);
+            const blueprint = findBlueprintById(blueprintId);
             if (!blueprint) return;
 
             blueprint.fields.push(field);
@@ -2566,7 +2647,7 @@
                 // Initialize in all existing instances
                 for (const instId in state.instances) {
                     const inst = state.instances[instId];
-                    if (inst.templateId !== templateId) continue;
+                    if (inst.templateId !== blueprintId) continue;
 
                     if (field.fieldKind === FIELD_KIND.PRIMITIVE) {
                         inst.fieldValues[field.id] = field.primitiveType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
@@ -2581,7 +2662,7 @@
                     }
                 }
             }
-
+            invalidateReachabilityCache();
             save();
             renderAll();
         }
@@ -3817,8 +3898,15 @@
             nameInput.value = blueprint.name;
             nameInput.disabled = isRootBlueprintId(blueprint.id);
             nameInput.onfocus = () => pushUndo();
-            nameInput.oninput = () => { blueprint.name = nameInput.value; save(); };
-            nameInput.onblur = () => { save(); renderAll(); };
+            nameInput.oninput = () => {
+                blueprint.name = nameInput.value;
+                debouncedSave();  // Don't save on every keystroke
+            };
+            nameInput.onblur = () => {
+                clearTimeout(saveTimeout);  // Cancel debounce
+                save();  // Immediate save
+                // Don't call renderAll() - name already updated in DOM
+            };
 
             wrap.appendChild(nameLabel);
             wrap.appendChild(nameInput);
