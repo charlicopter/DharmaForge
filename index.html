@@ -1928,6 +1928,7 @@
                 fields: [],
             };
             state.blueprints.push(t);
+            invalidateBlueprintMap();
             save();
             renderAll();
             return t;
