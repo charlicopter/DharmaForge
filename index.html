@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>DharmaForge — v1.0 - By Charles Cushing</title>
+    <title>DharmaForge — v1.0 — By Charles Cushing</title>
     <style>
         :root {
             --bg: #0b0f13;
@@ -914,8 +914,13 @@
 <body>
     <div class="app">
         <header>
-            <h1>DharmaForge: A Strict, Self-Validating Knowledge Modeling Engine - v1.0</h1>
-
+            <h1>
+                <a href="https://github.com/charlicopter/DharmaForge/tree/WIP?tab=readme-ov-file#a-note-before-you-begin"
+                    target="_blank" style="color: inherit; text-decoration: none; cursor: pointer;"
+                    title="Learn more about DharmaForge">
+                    DharmaForge — v1.0 — By Charles Cushing
+                </a>
+            </h1>
             <div class="nav-buttons">
                 <button id="backBtn" class="btn small" title="Back">◀</button>
                 <button id="forwardBtn" class="btn small" title="Forward">▶</button>
@@ -933,6 +938,7 @@
                     style="text-decoration:none;">
                     Discord
                 </a>
+                <button id="manualBtn" class="btn small">Manual</button>
             </div>
         </header>
 
@@ -4082,6 +4088,10 @@
             // Fields list
             const fieldList = document.createElement('div');
             fieldList.className = 'field-list';
+            fieldList.style.display = 'flex';
+            fieldList.style.flexDirection = 'column';
+            fieldList.style.gap = '6px';  // Reduced from 8px
+
 
             for (let fieldIdx = 0; fieldIdx < blueprint.fields.length; fieldIdx++) {
                 const f = blueprint.fields[fieldIdx];
@@ -4109,6 +4119,9 @@
                 dragHandle.className = 'drag-handle';
                 dragHandle.innerHTML = '⋮⋮';
                 fd.appendChild(dragHandle);
+                fd.style.display = 'flex';
+                fd.style.alignItems = 'center';  // THIS IS KEY - vertically centers all items
+                fd.style.gap = '8px';
 
                 fd.ondragstart = (e) => {
                     e.dataTransfer.setData('text/plain', JSON.stringify({
@@ -4145,6 +4158,7 @@
                 const inputName = document.createElement('input');
                 inputName.value = f.name;
                 inputName.style.flex = '1';
+                inputName.style.minWidth = '120px';
                 inputName.onfocus = () => pushUndo();
                 inputName.oninput = () => { f.name = inputName.value; save(); };
                 inputName.onblur = () => { save(); renderAll(); };
@@ -4218,7 +4232,7 @@
                     if (allDeletedIds.size > 0) {
                         for (const instId in state.instances) {
                             if (allDeletedIds.has(instId)) continue; // Skip instances being deleted
-                            
+
                             const inst = state.instances[instId];
                             const bp = findBlueprintById(inst.templateId);
                             if (!bp) continue;
@@ -4284,16 +4298,16 @@
                             }
                         }).join('\n');
 
-                        const confirmMsg = 
+                        const confirmMsg =
                             `⚠️ FIELD TYPE CHANGE\n\n` +
                             `Changing "${f.name}" from ${oldKind} → ${newKind}\n` +
                             `will clear this field in ${affectedInstances.length} instance(s).\n\n` +
-                            (totalOwnedToDelete > 0 ? 
+                            (totalOwnedToDelete > 0 ?
                                 `This will CASCADE DELETE ${totalOwnedToDelete} owned instance(s):\n\n${instanceDetails}\n\n` :
                                 `Affected:\n${instanceDetails}\n\n`) +
                             (totalBrokenRefs > 0 ?
                                 `This will CREATE ${totalBrokenRefs} BROKEN REFERENCE(S):\n\n` +
-                                brokenReferences.map(br => 
+                                brokenReferences.map(br =>
                                     `  • Instance ${br.id.slice(0, 8)}: ${br.count} reference(s) will break (${br.fields.join(', ')})`
                                 ).join('\n') + '\n\n' : '') +
                             `Continue?`;
@@ -4786,7 +4800,31 @@
 
                 const label = document.createElement('div');
                 label.className = 'field-key';
-                label.textContent = f.name;
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.gap = '6px';
+                label.style.marginBottom = '4px';
+                label.style.fontSize = '13px';
+
+                // Determine if this field is using the blueprint default
+                const isUsingBlueprintDefault = blueprint.isStatic && blueprint.staticValues?.[f.id] !== undefined
+                    && inst.fieldValues[f.id] === undefined;
+
+                // Only show lock if using blueprint default
+                if (isUsingBlueprintDefault) {
+                    const lockIcon = document.createElement('span');
+                    lockIcon.textContent = '🔒';
+                    lockIcon.style.fontSize = '11px';
+                    lockIcon.style.color = 'var(--muted)';
+                    label.appendChild(lockIcon);
+                }
+
+                // Field name
+                const fieldNameSpan = document.createElement('span');
+                fieldNameSpan.textContent = f.name;
+                label.appendChild(fieldNameSpan);
+
+                //label.textContent = f.name;
 
                 const control = document.createElement('div');
                 control.style.flex = '1';
@@ -4831,31 +4869,24 @@
                         defaultDisplay.appendChild(overrideBtn);
                         control.appendChild(defaultDisplay);
 
-                        const hintRow = document.createElement('div');
-                        hintRow.style.display = 'flex';
-                        hintRow.style.alignItems = 'center';
-                        hintRow.style.gap = '8px';
-                        hintRow.style.marginTop = '4px';
+                        // Edit defaults button directly under field name
+                        if (isStaticBlueprint) {
+                            const editBtn = document.createElement('button');
+                            editBtn.className = 'btn small';
+                            editBtn.style.fontSize = '10px';
+                            editBtn.style.padding = '2px 6px';
+                            editBtn.style.marginTop = '2px';
+                            editBtn.style.marginBottom = '4px';
+                            editBtn.textContent = '🔗 Edit defaults';
+                            editBtn.title = 'Go to blueprint editor to change default values';
+                            editBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                navigateTo('blueprint', blueprint.id);
+                            };
+                            control.appendChild(editBtn);  // Insert after label
+                        }
 
-                        const hint = document.createElement('div');
-                        hint.className = 'muted';
-                        hint.style.fontSize = '11px';
-                        hint.textContent = '🔒';
 
-                        const templateLink = document.createElement('button');
-                        templateLink.className = 'btn small';
-                        templateLink.style.fontSize = '10px';
-                        templateLink.style.padding = '2px 6px';
-                        templateLink.textContent = '🔗 Edit defaults';
-                        templateLink.title = 'Go to blueprint editor to change default values';
-                        templateLink.onclick = (e) => {
-                            e.stopPropagation();
-                            navigateTo('blueprint', blueprint.id);
-                        };
-
-                        hintRow.appendChild(hint);
-                        hintRow.appendChild(templateLink);
-                        control.appendChild(hintRow);
 
                     } else {
                         // STATE: Normal input (no blueprint default, or overridden)
@@ -5797,9 +5828,1072 @@
             updateNavButtons();
 
             console.log('DharmaForge v1.0 - Ready');
-        })();
+        })();  // End of boot()
+
+        // MANUAL
+        const MANUAL_HTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DharmaForge User Manual</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .manual-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-height: 100vh;
+        }
+
+        .manual-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .manual-header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .manual-header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+
+        .toc {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .toc h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        .toc ol {
+            list-style: none;
+            counter-reset: toc-counter;
+        }
+
+        .toc li {
+            counter-increment: toc-counter;
+            margin-bottom: 0.5rem;
+        }
+
+        .toc li a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .toc li a:before {
+            content: counter(toc-counter) ". ";
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 0.5rem;
+        }
+
+        .toc li a:hover {
+            background: white;
+            color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .manual-content {
+            padding: 2rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+            scroll-margin-top: 80px;
+        }
+
+        .section h2 {
+            font-size: 1.8rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .section h3 {
+            font-size: 1.3rem;
+            color: #764ba2;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .section h4 {
+            font-size: 1.1rem;
+            color: #555;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .section p {
+            margin-bottom: 1rem;
+        }
+
+        .section ul, .section ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .section li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #d63384;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .callout {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+
+        .callout.warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+
+        .callout.danger {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .callout.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        .callout strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.05em;
+        }
+
+        .example {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .example-title {
+            font-weight: 600;
+            color: #764ba2;
+            margin-bottom: 0.5rem;
+        }
+
+        .emoji {
+            font-style: normal;
+        }
+
+        strong {
+            color: #667eea;
+        }
+
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #e0e0e0;
+            margin: 2rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .manual-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .close-btn {
+                position: static;
+                display: block;
+                margin-top: 1rem;
+            }
+
+            .manual-content {
+                padding: 1rem;
+            }
+
+            .section h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="manual-container">
+        <div class="manual-header">
+            <h1>DharmaForge User Manual</h1>
+            <p>Complete guide to building your own knowledge structures</p>
+            <button class="close-btn">Close</button>
+        </div>
+
+        <div class="toc">
+            <h2>Table of Contents</h2>
+            <ol>
+                <li><a href="#what-is-dharmaforge">What is DharmaForge?</a></li>
+                <li><a href="#core-concepts">Core Concepts</a></li>
+                <li><a href="#getting-started">Getting Started Tutorial</a></li>
+                <li><a href="#blueprint-library">Blueprint Library</a></li>
+                <li><a href="#instance-hierarchy">Instance Hierarchy</a></li>
+                <li><a href="#field-types">Field Types Deep Dive</a></li>
+                <li><a href="#references-ownership">References & Ownership</a></li>
+                <li><a href="#error-indicators">Error Indicators</a></li>
+                <li><a href="#advanced-operations">Advanced Operations</a></li>
+                <li><a href="#shortcuts">Keyboard Shortcuts</a></li>
+                <li><a href="#workflows">Common Workflows</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ol>
+        </div>
+
+        <div class="manual-content">
+            <section class="section" id="what-is-dharmaforge">
+                <h2>1. What is DharmaForge?</h2>
+                
+                <p>DharmaForge is a visual programming tool for building custom knowledge structures. Unlike traditional apps that force you into their structure (pages, folders, tables), DharmaForge lets you <strong>define your own structure</strong>, then use it.</p>
+
+                <div class="callout">
+                    <strong>Think of it like:</strong>
+                    <ul>
+                        <li>LEGO for information - you define the pieces and how they connect</li>
+                        <li>A spreadsheet where you design the columns yourself</li>
+                        <li>A database you can see and touch</li>
+                    </ul>
+                </div>
+
+                <p><strong>The core idea:</strong> You build templates (called <strong>blueprints</strong>), create things from those templates (called <strong>instances</strong>), and link them together. Your structure becomes your tool.</p>
+
+                <p><strong>The philosophy:</strong> DharmaForge shows you everything and fixes nothing automatically. If something breaks, you'll see it (red boxes). If something's wrong, you'll fix it. No hand-holding, no surprises, total control.</p>
+            </section>
+
+            <section class="section" id="core-concepts">
+                <h2>2. Core Concepts</h2>
+
+                <h3>Blueprints</h3>
+                <p><strong>Templates that define types of things.</strong></p>
+                <p>Think of blueprints as cookie cutters. They define what shape instances will have, but they're not the actual cookies.</p>
+                <p>Examples: "Character," "Quest," "Project," "Note"</p>
+                <p>Each blueprint has:</p>
+                <ul>
+                    <li>A <strong>name</strong> (what it's called)</li>
+                    <li>A <strong>type</strong> (a category like "Card" or "Task")</li>
+                    <li><strong>Fields</strong> (the properties instances will have)</li>
+                </ul>
+
+                <h3>Instances</h3>
+                <p><strong>The actual things you create from blueprints.</strong></p>
+                <p>If blueprints are cookie cutters, instances are the cookies. Each instance is based on a blueprint and has values for all its fields.</p>
+                <p>Examples: "Bob" (a Character), "Save the Princess" (a Quest), "My Novel" (a Project)</p>
+
+                <h3>Fields</h3>
+                <p><strong>Properties that blueprints have and instances fill in.</strong></p>
+                <p>Fields define what information each instance stores. There are 5 types:</p>
+                <ol>
+                    <li><strong>Primitive</strong> - Simple data (text, numbers)</li>
+                    <li><strong>Instantiator</strong> - Contains ONE owned child instance</li>
+                    <li><strong>Instantiator List</strong> - Contains MULTIPLE owned child instances</li>
+                    <li><strong>Instance Reference</strong> - Links to ONE other instance (doesn't own it)</li>
+                    <li><strong>Instance Reference List</strong> - Links to MULTIPLE other instances (doesn't own them)</li>
+                </ol>
+
+                <h3>Ownership vs References</h3>
+                <p><strong>The most important concept in DharmaForge.</strong></p>
+
+                <div class="example">
+                    <div class="example-title">Ownership (instantiator fields):</div>
+                    <ul>
+                        <li>Instance A <strong>owns</strong> Instance B</li>
+                        <li>B is a child of A</li>
+                        <li>Deleting A deletes B (cascade deletion)</li>
+                        <li>B appears under A in the hierarchy</li>
+                        <li>Visual: Solid border</li>
+                    </ul>
+                </div>
+
+                <div class="example">
+                    <div class="example-title">References (instanceReference fields):</div>
+                    <ul>
+                        <li>Instance A <strong>references</strong> Instance B</li>
+                        <li>B is independent of A</li>
+                        <li>Deleting A leaves B intact (but shows broken reference)</li>
+                        <li>B doesn't appear under A in hierarchy</li>
+                        <li>Visual: Green dashed border, <span class="emoji">🔗</span> icon</li>
+                    </ul>
+                </div>
+
+                <p><strong>Think of it like:</strong> Ownership = "contains," Reference = "points to"</p>
+            </section>
+
+            <section class="section" id="getting-started">
+                <h2>3. Getting Started Tutorial</h2>
+                
+                <p>Let's build a simple character relationship system.</p>
+
+                <h3>Step 1: Create Your First Blueprint</h3>
+                <ol>
+                    <li>Look at the right panel labeled <strong>"Blueprint Library"</strong></li>
+                    <li>Click the <strong>"+ Create New Blueprint"</strong> button</li>
+                    <li>A new blueprint appears with default name "Unnamed"</li>
+                    <li>Click on the name and change it to <strong>"Character"</strong></li>
+                    <li>In the <strong>"Type"</strong> dropdown, select <strong>"Card"</strong> (or create a new type)</li>
+                </ol>
+
+                <h3>Step 2: Add Fields to Your Blueprint</h3>
+                <p>Now we'll add properties that all characters will have.</p>
+
+                <h4>Add a Name field:</h4>
+                <ol>
+                    <li>Click <strong>"+ Add Field"</strong> in your Character blueprint</li>
+                    <li>Change field name from "field" to <strong>"Name"</strong></li>
+                    <li>Field Kind dropdown: Select <strong>"Primitive"</strong></li>
+                    <li>Primitive Type dropdown: Select <strong>"Text"</strong></li>
+                </ol>
+
+                <h4>Add a Friends field:</h4>
+                <ol>
+                    <li>Click <strong>"+ Add Field"</strong> again</li>
+                    <li>Change name to <strong>"Friends"</strong></li>
+                    <li>Field Kind: Select <strong>"Instance Reference List"</strong></li>
+                    <li>Type Filter: Select <strong>"Character"</strong>
+                        <ul><li>This means the Friends field can only contain other Characters</li></ul>
+                    </li>
+                </ol>
+
+                <h4>Add a Description field:</h4>
+                <ol>
+                    <li>Click <strong>"+ Add Field"</strong></li>
+                    <li>Name it <strong>"Description"</strong></li>
+                    <li>Field Kind: <strong>"Primitive"</strong></li>
+                    <li>Primitive Type: <strong>"Text"</strong></li>
+                </ol>
+
+                <h3>Step 3: Create Instances</h3>
+                <p>Now let's create actual characters.</p>
+                <ol>
+                    <li>In the <strong>middle panel</strong> ("Instance Hierarchy"), you'll see your root instance</li>
+                    <li>Expand it by clicking the triangle (▸)</li>
+                    <li>Find a field in root that accepts Character type, or add one</li>
+                    <li>In the root, click <strong>"Create new instance of [type]"</strong> dropdown</li>
+                    <li>Select <strong>"Character"</strong></li>
+                    <li>A new character instance appears!</li>
+                </ol>
+
+                <h4>Fill in the character:</h4>
+                <ol>
+                    <li>Click on the character card to expand it</li>
+                    <li>In the <strong>"Name"</strong> field, type <strong>"Alice"</strong></li>
+                    <li>In the <strong>"Description"</strong> field, type whatever you want</li>
+                    <li>Leave Friends empty for now</li>
+                </ol>
+
+                <h4>Create more characters:</h4>
+                <ol>
+                    <li>Create another Character instance named <strong>"Bob"</strong></li>
+                    <li>Create a third named <strong>"Carol"</strong></li>
+                </ol>
+
+                <h3>Step 4: Link Characters Together</h3>
+                <p>Now let's make Alice friends with Bob.</p>
+                <ol>
+                    <li>Click on Alice's card to view it</li>
+                    <li>Find the <strong>"Friends"</strong> field (it's an Instance Reference List)</li>
+                    <li>Click the <strong>"🔗 Link Instance"</strong> button</li>
+                    <li>A picker appears showing all Character instances</li>
+                    <li>Click <strong>"Bob"</strong></li>
+                    <li>Bob appears as a blue chip in Alice's Friends field!</li>
+                </ol>
+
+                <h4>Try the other direction:</h4>
+                <ol>
+                    <li>Click on Bob's card</li>
+                    <li>In Bob's Friends field, link to Alice</li>
+                    <li>Now they're mutual friends!</li>
+                </ol>
+
+                <h4>See the reference in action:</h4>
+                <ol>
+                    <li>Click the <strong>triangle (▸)</strong> on Bob's chip in Alice's Friends field</li>
+                    <li>Bob's full card appears inline - you can see all his info!</li>
+                    <li>Click the triangle again to collapse it</li>
+                </ol>
+
+                <h3>Step 5: Understanding Ownership</h3>
+                <p>Let's see the difference between ownership and references.</p>
+
+                <h4>Create an owned child:</h4>
+                <ol>
+                    <li>Add a new field to Character blueprint called <strong>"Inventory"</strong></li>
+                    <li>Field Kind: <strong>"Instantiator List"</strong> (note: not Reference List)</li>
+                    <li>Type Filter: Create a new blueprint called <strong>"Item"</strong> and select it</li>
+                    <li>Now create an Item instance inside Alice's Inventory</li>
+                    <li>This Item is <strong>owned by Alice</strong> - if you delete Alice, it gets deleted too</li>
+                </ol>
+
+                <h4>Compare to references:</h4>
+                <ul>
+                    <li>Alice's Friends are <strong>references</strong> - if you delete Alice, Bob and Carol still exist</li>
+                    <li>Alice's Inventory items are <strong>owned</strong> - if you delete Alice, her items get deleted</li>
+                    <li>Visual difference: Inventory shows solid border, Friends shows green dashed border</li>
+                </ul>
+            </section>
+
+            <section class="section" id="blueprint-library">
+                <h2>4. Blueprint Library (Right Panel)</h2>
+
+                <h3>Creating Blueprints</h3>
+                <p><strong>"+ Create New Blueprint" button:</strong></p>
+                <ul>
+                    <li>Creates a new blueprint with default name "Unnamed"</li>
+                    <li>Type defaults to "Generic"</li>
+                    <li>Has no fields initially</li>
+                </ul>
+
+                <p><strong>Blueprint properties:</strong></p>
+                <ul>
+                    <li><strong>Name:</strong> What you call this blueprint (e.g., "Character")</li>
+                    <li><strong>Type:</strong> A category for filtering (e.g., "Card," "Task," "Note")</li>
+                    <li><strong>Is Static:</strong> Advanced - makes this blueprint a singleton with default values</li>
+                </ul>
+
+                <h3>Editing Blueprint Fields</h3>
+                <p><strong>"+ Add Field" button:</strong></p>
+                <ul>
+                    <li>Adds a new field to the blueprint</li>
+                    <li>All instances of this blueprint immediately get this field</li>
+                </ul>
+
+                <p><strong>Field properties:</strong></p>
+                <ul>
+                    <li><strong>Name:</strong> What you call this field (shows in instances)</li>
+                    <li><strong>Field Kind:</strong> What type of data (see Field Types section)</li>
+                    <li><strong>Type Filter:</strong> For instantiator/reference fields, which blueprint types are allowed</li>
+                    <li><strong>Primitive Type:</strong> For primitive fields, whether it's text or number</li>
+                </ul>
+
+                <p><strong>Reordering fields:</strong></p>
+                <ul>
+                    <li>Drag the <strong>☰</strong> handle on the left of each field</li>
+                    <li>Drop it above or below other fields</li>
+                    <li>All instances update to match the new order</li>
+                </ul>
+
+                <p><strong>Deleting fields:</strong></p>
+                <ul>
+                    <li>Click the red <strong>×</strong> button on the right</li>
+                    <li>Warns you if instances have data in this field</li>
+                    <li>All instance data for this field is lost</li>
+                </ul>
+
+                <h3>Changing Field Types</h3>
+                <div class="callout warning">
+                    <strong>Warning system:</strong>
+                    <p>When you change a field's type (e.g., from text to instantiator), DharmaForge shows a comprehensive warning:</p>
+                    <ul>
+                        <li>How many instances will be affected</li>
+                        <li>How many owned instances will be deleted (if changing from instantiator)</li>
+                        <li>How many references will break (if others reference the deleted instances)</li>
+                        <li>Full list of consequences</li>
+                    </ul>
+                    <p><strong>You must explicitly confirm</strong> - DharmaForge won't make assumptions.</p>
+                </div>
+
+                <h3>Blueprint Issues Indicators</h3>
+                <p>In the Blueprint Library header, you may see:</p>
+                <ul>
+                    <li><strong><span class="emoji">🟡</span> [number]</strong> - Warnings (unselected type filters)</li>
+                    <li><strong><span class="emoji">🔴</span> [number]</strong> - Errors (fields reference non-existent blueprint types)</li>
+                </ul>
+                <p>Click <strong>"Show Blueprint Issues"</strong> to see details.</p>
+
+                <h3>Deleting Blueprints</h3>
+                <div class="callout danger">
+                    <strong>Red × button next to blueprint name:</strong>
+                    <ul>
+                        <li>Warns if instances exist using this blueprint</li>
+                        <li>Deleting a blueprint deletes ALL its instances (cascade deletion)</li>
+                        <li>Shows how many instances will be deleted</li>
+                        <li>Cannot be undone (except via Undo button)</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="section" id="instance-hierarchy">
+                <h2>5. Instance Hierarchy (Left Panel)</h2>
+
+                <h3>Understanding the Hierarchy</h3>
+                <p>The hierarchy shows your <strong>ownership tree</strong> - which instances contain which other instances.</p>
+
+                <p><strong>Visual indicators:</strong></p>
+                <ul>
+                    <li><strong>▸/▾</strong> - Expand/collapse to show children</li>
+                    <li><strong>Solid border</strong> - Owned child (lives here)</li>
+                    <li><strong>Green dashed border + 🔗</strong> - Referenced child (linked from elsewhere)</li>
+                    <li><strong><span class="emoji">🔴</span> [number]</strong> - Error count (broken references)</li>
+                    <li><strong><span class="emoji">⚠️</span> [number]</strong> - Warning count (orphaned references)</li>
+                </ul>
+
+                <h3>Navigation</h3>
+                <p><strong>Back/Forward buttons (◀ ▶):</strong></p>
+                <ul>
+                    <li>Navigate through your viewing history</li>
+                    <li>Like a web browser's back/forward buttons</li>
+                    <li>Keyboard: Alt+Left, Alt+Right</li>
+                </ul>
+
+                <p><strong>Clicking instances:</strong></p>
+                <ul>
+                    <li>Selects the instance</li>
+                    <li>Shows it in the Workspace (middle panel)</li>
+                    <li>Updates the breadcrumb path</li>
+                </ul>
+
+                <h3>Hierarchy Controls</h3>
+                <p><strong>"Verbose Hierarchy" checkbox:</strong></p>
+                <ul>
+                    <li>OFF: Shows <code>"Bob (Character)"</code> → <code>"Carol (Character)"</code></li>
+                    <li>ON: Shows <code>"Bob (Character)"</code> → <code>"Friends (instanceReferenceList)"</code> → <code>"Carol (Character)"</code></li>
+                    <li>Useful for understanding exact field relationships</li>
+                </ul>
+            </section>
+
+            <section class="section" id="field-types">
+                <h2>6. Field Types Deep Dive</h2>
+
+                <h3>1. Primitive Fields</h3>
+                <p><strong>What they do:</strong> Store simple data like text or numbers</p>
+                <p><strong>Properties:</strong></p>
+                <ul>
+                    <li>Primitive Type: Text or Number</li>
+                    <li>No type filter needed</li>
+                </ul>
+                <p><strong>When to use:</strong></p>
+                <ul>
+                    <li>Names, descriptions, dates</li>
+                    <li>Quantities, prices, scores</li>
+                    <li>Any simple data that doesn't relate to other instances</li>
+                </ul>
+
+                <h3>2. Instantiator (Single)</h3>
+                <p><strong>What it does:</strong> Contains exactly ONE owned child instance</p>
+                <p><strong>When to use:</strong></p>
+                <ul>
+                    <li>One-to-one ownership relationships</li>
+                    <li>"Project has a Lead Designer"</li>
+                    <li>"Character has a Home Location"</li>
+                </ul>
+                <p><strong>Behavior:</strong></p>
+                <ul>
+                    <li>Child instance is OWNED by parent</li>
+                    <li>Deleting parent deletes child (cascade)</li>
+                    <li>Child appears in hierarchy under parent</li>
+                    <li>Moving child removes it from old parent</li>
+                </ul>
+                <p><strong>Operations available:</strong></p>
+                <ul>
+                    <li><strong>Create new instance:</strong> Instantiate a new child</li>
+                    <li><strong>Move Instance Here:</strong> Take ownership of an existing instance</li>
+                    <li><strong>Link Instance:</strong> Reference an existing instance (makes it a reference, not owned)</li>
+                </ul>
+
+                <h3>3. Instantiator List</h3>
+                <p><strong>What it does:</strong> Contains MULTIPLE owned child instances</p>
+                <p><strong>When to use:</strong></p>
+                <ul>
+                    <li>One-to-many ownership relationships</li>
+                    <li>"Project has Tasks"</li>
+                    <li>"Character has Inventory Items"</li>
+                    <li>"Quest has Sub-Quests"</li>
+                </ul>
+                <p><strong>Behavior:</strong></p>
+                <ul>
+                    <li>All child instances are OWNED by parent</li>
+                    <li>Deleting parent deletes all children (cascade)</li>
+                    <li>Children appear in hierarchy under parent</li>
+                    <li>Can reorder children via drag-and-drop</li>
+                </ul>
+
+                <h3>4. Instance Reference (Single)</h3>
+                <p><strong>What it does:</strong> Links to exactly ONE other instance (doesn't own it)</p>
+                <p><strong>When to use:</strong></p>
+                <ul>
+                    <li>Relationships between independent things</li>
+                    <li>"Character has a Best Friend" (but doesn't own them)</li>
+                    <li>"Task references a Related Project" (but doesn't contain it)</li>
+                </ul>
+                <p><strong>Behavior:</strong></p>
+                <ul>
+                    <li>Referenced instance is NOT owned</li>
+                    <li>Deleting parent leaves child intact</li>
+                    <li>Reference shows as blue chip (expandable)</li>
+                    <li>If referenced instance is deleted, shows <span class="emoji">🔴</span> red "broken reference"</li>
+                    <li>If referenced instance is orphaned, shows <span class="emoji">⚠️</span> yellow "orphaned reference"</li>
+                </ul>
+
+                <h3>5. Instance Reference List</h3>
+                <p><strong>What it does:</strong> Links to MULTIPLE other instances (doesn't own them)</p>
+                <p><strong>When to use:</strong></p>
+                <ul>
+                    <li>Many-to-many relationships</li>
+                    <li>"Character has Friends" (but doesn't own them)</li>
+                    <li>"Project has Contributors" (who exist independently)</li>
+                    <li>"Quest requires Items" (that exist in the world)</li>
+                </ul>
+                <p><strong>Behavior:</strong></p>
+                <ul>
+                    <li>Referenced instances are NOT owned</li>
+                    <li>Deleting parent leaves children intact</li>
+                    <li>References show as blue chips (expandable)</li>
+                    <li>Can reorder references via drag-and-drop</li>
+                    <li>Broken/orphaned references show <span class="emoji">🔴</span>/<span class="emoji">⚠️</span></li>
+                </ul>
+            </section>
+
+            <section class="section" id="references-ownership">
+                <h2>7. References & Ownership</h2>
+
+                <h3>The Fundamental Distinction</h3>
+                <div class="example">
+                    <div class="example-title">Ownership (instantiator):</div>
+                    <pre>A owns B means:
+- B exists because of A
+- B lives under A in hierarchy
+- Deleting A deletes B
+- B has ONE parent (A)</pre>
+                </div>
+
+                <div class="example">
+                    <div class="example-title">References (instanceReference):</div>
+                    <pre>A references B means:
+- B exists independently
+- B doesn't appear under A in hierarchy
+- Deleting A leaves B intact (but reference breaks)
+- B can be referenced by MANY things</pre>
+                </div>
+
+                <h3>Visual Indicators</h3>
+                <p><strong>In the hierarchy:</strong></p>
+                <ul>
+                    <li>Owned children: Solid border, indented under parent</li>
+                    <li>Referenced children: Green dashed border + 🔗, indented but marked</li>
+                </ul>
+
+                <p><strong>In instance cards:</strong></p>
+                <ul>
+                    <li>Instantiator fields: Show children inline with solid borders</li>
+                    <li>Reference fields: Show blue chips that expand to show content</li>
+                </ul>
+
+                <h3>The "Link Instance" Subtlety</h3>
+                <div class="callout warning">
+                    <strong>Important:</strong> When you use "Link Instance" in an instantiator field, you're creating a <strong>reference</strong>, not ownership!
+                    <p><strong>To create owned children in instantiator fields:</strong></p>
+                    <ul>
+                        <li>Use "Create new instance" (instantiates owned child)</li>
+                        <li>Use "Move Instance Here" (transfers ownership)</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="section" id="error-indicators">
+                <h2>8. Error Indicators</h2>
+
+                <h3>Red (<span class="emoji">🔴</span>) - Broken References</h3>
+                <p><strong>What it means:</strong> A field contains an ID of an instance that no longer exists</p>
+                <p><strong>Where you'll see it:</strong></p>
+                <ul>
+                    <li>Red box in instance cards: <code>🔴 Instance abc12345 (deleted) [×]</code></li>
+                    <li>Red chip in reference fields: <code>🔴 abc12345 (deleted) [×]</code></li>
+                    <li>Red number in hierarchy: <code>🔴 2</code> (count of broken references)</li>
+                </ul>
+                <p><strong>What to do:</strong></p>
+                <ul>
+                    <li>Click the <strong>×</strong> button on each red box/chip to clear it</li>
+                    <li>Or leave it there as an audit trail (you can see what was deleted)</li>
+                    <li>No automatic cleanup - you must explicitly clear each one</li>
+                </ul>
+
+                <h3>Yellow (<span class="emoji">⚠️</span>) - Orphaned References</h3>
+                <p><strong>What it means:</strong> A field contains an ID of an instance that exists but is unreachable from root</p>
+                <p><strong>Where you'll see it:</strong></p>
+                <ul>
+                    <li>Yellow box in instance cards: <code>⚠️ Instance abc12345 (orphaned) [×]</code></li>
+                    <li>Yellow chip in reference fields: <code>⚠️ abc12345 (orphaned) [×]</code></li>
+                    <li>Yellow number in hierarchy: <code>⚠️ 1</code> (count of orphaned references)</li>
+                </ul>
+                <p><strong>What to do:</strong></p>
+                <ul>
+                    <li>Click <strong>"Clean Orphans"</strong> button (top right) to delete orphans</li>
+                    <li>After cleaning, orphaned references become broken (turn red)</li>
+                    <li>Then clear the broken references (×) as above</li>
+                </ul>
+            </section>
+
+            <section class="section" id="advanced-operations">
+                <h2>9. Advanced Operations</h2>
+
+                <h3>Move Instance</h3>
+                <p><strong>What it does:</strong> Transfers ownership of an instance from one parent to another</p>
+                <p><strong>How to use:</strong></p>
+                <ol>
+                    <li>In an instantiator field, click <strong>"↪️ Move Instance Here"</strong></li>
+                    <li>Picker shows all instances (filters by type if type filter is set)</li>
+                    <li>Select an instance</li>
+                    <li>That instance is removed from old parent and moved here</li>
+                    <li>Becomes owned child of new parent</li>
+                </ol>
+
+                <h3>Link Instance</h3>
+                <p><strong>What it does:</strong> Creates a reference to an existing instance (without ownership)</p>
+                <p><strong>How to use:</strong></p>
+                <ol>
+                    <li>In any instantiator or reference field, click <strong>"🔗 Link Instance"</strong></li>
+                    <li>Picker shows all instances (filters by type if type filter is set)</li>
+                    <li>Select an instance</li>
+                    <li>Instance appears as a reference (green border if in instantiator field, blue chip if in reference field)</li>
+                </ol>
+
+                <h3>Expandable Reference Chips</h3>
+                <p><strong>What they do:</strong> Let you view referenced instances inline without navigating away</p>
+                <p><strong>How to use:</strong></p>
+                <ol>
+                    <li>Find a blue chip (in reference fields)</li>
+                    <li>Click the <strong>▸</strong> triangle on the left</li>
+                    <li>The full instance card appears inline below the chip</li>
+                    <li>You can view all fields, even edit them</li>
+                    <li>Click <strong>▾</strong> to collapse it again</li>
+                </ol>
+
+                <h3>Cascade Deletion</h3>
+                <p><strong>What it does:</strong> When you delete an instance, all its owned children are deleted too</p>
+                <div class="callout danger">
+                    <strong>Important notes:</strong>
+                    <ul>
+                        <li>Only affects OWNED children (via instantiator fields)</li>
+                        <li>Does NOT delete referenced instances (via instanceReference fields)</li>
+                        <li>Recursive: deletes children, grandchildren, great-grandchildren, etc.</li>
+                        <li>Cannot be undone (except via Undo button)</li>
+                    </ul>
+                </div>
+
+                <h3>Orphan Detection & Cleanup</h3>
+                <p><strong>What are orphans?</strong> Instances that exist in the registry but are unreachable from root.</p>
+                <p><strong>How to clean them:</strong></p>
+                <ol>
+                    <li>Click <strong>"Clean Orphans"</strong> button (top right)</li>
+                    <li>DharmaForge scans for unreachable instances</li>
+                    <li>Shows count and IDs</li>
+                    <li>Click "Delete Orphans" to remove them</li>
+                    <li>References to orphans turn broken (<span class="emoji">🔴</span> red)</li>
+                </ol>
+            </section>
+
+            <section class="section" id="shortcuts">
+                <h2>10. Keyboard Shortcuts</h2>
+
+                <h3>Navigation</h3>
+                <ul>
+                    <li><strong>Ctrl+Z</strong> - Undo last action</li>
+                    <li><strong>Ctrl+Y</strong> - Redo last undone action</li>
+                    <li><strong>Alt+Left</strong> - Navigate back (like browser back button)</li>
+                    <li><strong>Alt+Right</strong> - Navigate forward (like browser forward)</li>
+                </ul>
+
+                <h3>Workflow Tips</h3>
+                <ul>
+                    <li><strong>Double-click instance name</strong> - Edit name inline</li>
+                    <li><strong>Drag ☰ handle</strong> - Reorder fields or instances</li>
+                    <li><strong>Click ▸ triangle</strong> - Expand/collapse in hierarchy</li>
+                    <li><strong>Click blue chip ▸</strong> - Expand reference inline</li>
+                </ul>
+            </section>
+
+            <section class="section" id="workflows">
+                <h2>11. Common Workflows</h2>
+
+                <h3>Worldbuilding</h3>
+                <div class="example">
+                    <div class="example-title">Setup:</div>
+                    <pre>Blueprints:
+- Character (fields: Name, Description, Friends [refList], Home [ref])
+- Location (fields: Name, Description, Residents [refList])
+- Quest (fields: Name, Objectives [list], NPCs [refList], Location [ref])</pre>
+                </div>
+
+                <p><strong>Workflow:</strong></p>
+                <ol>
+                    <li>Create all Characters as owned by root</li>
+                    <li>Create all Locations as owned by root</li>
+                    <li>Link Characters to Friends (mutual references)</li>
+                    <li>Link Characters to Home locations</li>
+                    <li>Link Locations to Residents (Characters)</li>
+                    <li>Create Quests referencing Characters and Locations</li>
+                    <li>Expand chips to see NPC details while writing quest</li>
+                </ol>
+
+                <h3>Project Management</h3>
+                <div class="example">
+                    <div class="example-title">Setup:</div>
+                    <pre>Blueprints:
+- Project (fields: Name, Lead [ref], Tasks [instantiatorList])
+- Task (fields: Name, Status, Assignee [ref], Subtasks [instantiatorList])
+- Person (fields: Name, Email, Skills)</pre>
+                </div>
+
+                <p><strong>Workflow:</strong></p>
+                <ol>
+                    <li>Create all People as owned by root</li>
+                    <li>Create Projects as owned by root</li>
+                    <li>Create Tasks INSIDE Projects (owned by Project)</li>
+                    <li>Link People to Task Assignees</li>
+                    <li>Link Project Lead to People</li>
+                    <li>Create Subtasks inside Tasks (nested ownership)</li>
+                    <li>Drag tasks to reorder priorities</li>
+                </ol>
+
+                <h3>Knowledge Graph / Zettelkasten</h3>
+                <div class="example">
+                    <div class="example-title">Setup:</div>
+                    <pre>Blueprints:
+- Note (fields: Title, Content, Related [refList], Topics [refList])
+- Topic (fields: Name, Description, Notes [refList])</pre>
+                </div>
+
+                <p><strong>Workflow:</strong></p>
+                <ol>
+                    <li>Create Notes as owned by root (or category folders)</li>
+                    <li>Create Topics as owned by root</li>
+                    <li>Link Notes to Related Notes (bidirectional)</li>
+                    <li>Link Notes to Topics</li>
+                    <li>Link Topics to Notes</li>
+                    <li>Expand chips to see related notes inline while writing</li>
+                    <li>Navigate through Related references to explore connections</li>
+                </ol>
+            </section>
+
+            <section class="section" id="troubleshooting">
+                <h2>12. Troubleshooting</h2>
+
+                <h3>"I can't find my instance!"</h3>
+                <p><strong>Check:</strong></p>
+                <ul>
+                    <li>Is it collapsed in the hierarchy? Click ▸ to expand parents</li>
+                    <li>Is it orphaned? Click "Clean Orphans" to find unreachable instances</li>
+                    <li>Is it referenced? Look for green dashed borders (references don't show in hierarchy at that location)</li>
+                    <li>Did you delete it? Check Undo button</li>
+                </ul>
+
+                <h3>"I see red boxes everywhere!"</h3>
+                <p><strong>This means:</strong> You deleted an instance that was referenced by others</p>
+                <p><strong>Fix:</strong></p>
+                <ul>
+                    <li>Click the <strong>×</strong> button on each red box to clear the reference</li>
+                    <li>Or use Undo (Ctrl+Z) to restore the deleted instance</li>
+                    <li>Red boxes are intentional - they show you what broke</li>
+                </ul>
+
+                <h3>"I deleted something by accident!"</h3>
+                <p><strong>Fix:</strong></p>
+                <ol>
+                    <li>Click <strong>Undo</strong> (Ctrl+Z) immediately</li>
+                    <li>This restores the deleted instance and all its children</li>
+                    <li>DharmaForge has unlimited undo/redo</li>
+                </ol>
+
+                <h3>"The dropdown says 'No instances available'"</h3>
+                <p><strong>This means:</strong> No instances of the required type exist</p>
+                <p><strong>Fix:</strong></p>
+                <ul>
+                    <li>Check the field's type filter (what blueprint type it expects)</li>
+                    <li>Create an instance of that type first</li>
+                    <li>Or change the type filter to accept more types</li>
+                </ul>
+
+                <h3>"I can't move an instance"</h3>
+                <p><strong>Possible reasons:</strong></p>
+                <ul>
+                    <li><strong>Circular reference:</strong> Can't move A into B if B is inside A</li>
+                    <li><strong>Wrong type:</strong> Type filter doesn't match instance's blueprint</li>
+                    <li><strong>No parent:</strong> Instance doesn't have parent set (might be root)</li>
+                    <li><strong>Already there:</strong> Instance is already in that field</li>
+                </ul>
+
+                <h3>"Yellow warnings appeared out of nowhere"</h3>
+                <p><strong>This means:</strong> You have orphaned instances (unreachable from root)</p>
+                <p><strong>Fix:</strong></p>
+                <ol>
+                    <li>Click <strong>"Clean Orphans"</strong> button</li>
+                    <li>Review the list of orphans</li>
+                    <li>Click "Delete Orphans" to remove them</li>
+                    <li>Yellow references will turn red (broken)</li>
+                    <li>Clear red references as needed</li>
+                </ol>
+
+                <h3>"I want to start over"</h3>
+                <p><strong>Best practice:</strong></p>
+                <ol>
+                    <li>Click <strong>"Export JSON"</strong> first (backup)</li>
+                    <li>Click <strong>"Reset"</strong> button (top right)</li>
+                    <li>Confirms: "This will delete ALL data"</li>
+                    <li>Import later if you change your mind</li>
+                </ol>
+
+                <hr>
+
+                <h3>Final Tips</h3>
+                <div class="callout success">
+                    <strong>Best Practices:</strong>
+                    <ul>
+                        <li>Design blueprints first - Think through your structure before creating instances</li>
+                        <li>Use type filters - Constrain fields to specific types for data integrity</li>
+                        <li>Own sparingly, reference liberally - Use ownership only for true containment</li>
+                        <li>Export regularly - Save your work as JSON files</li>
+                        <li>Read warnings carefully - DharmaForge tells you exactly what will happen</li>
+                        <li>Don't fear broken references - They're information (what broke, where)</li>
+                    </ul>
+                </div>
+
+                <div class="callout">
+                    <strong>Philosophy Reminders:</strong>
+                    <ul>
+                        <li>DharmaForge shows everything - No hidden state, no surprises</li>
+                        <li>DharmaForge fixes nothing automatically - You're in control</li>
+                        <li>Broken things stay broken - Until you explicitly fix them</li>
+                        <li>Complexity is visible - Not abstracted away</li>
+                    </ul>
+                    <p><strong>This gives you total power. Use it wisely.</strong></p>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>
+`;
+
+        setTimeout(() => {
+            console.log('Manual setup running...');
+            const btn = document.getElementById('manualBtn');
+            console.log('manualBtn found:', btn);
+
+            if (btn) {
+                console.log('Setting onclick handler...');
+                btn.onclick = () => {
+                    console.log('Manual button clicked!');
+                    const modal = document.getElementById('manualModal');
+                    const frame = document.getElementById('manualFrame');
+                    console.log('Modal:', modal, 'Frame:', frame);
+
+                    if (!modal || !frame) {
+                        console.error('Modal or frame not found!');
+                        return;
+                    }
+
+                    modal.style.display = 'block';
+                    const doc = frame.contentDocument;
+                    doc.open();
+                    doc.write(MANUAL_HTML);
+                    doc.close();
+
+                    setTimeout(() => {
+                        const closeBtn = doc.querySelector('.close-btn');
+                        if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
+                    }, 100);
+
+                    modal.onclick = (e) => {
+                        if (e.target === modal) modal.style.display = 'none';
+                    };
+                };
+                console.log('onclick handler set!');
+            } else {
+                console.error('manualBtn not found!');
+            }
+        }, 500);
 
     </script>
+
+    <!-- Manual Modal -->
+    <div id="manualModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; overflow: auto;">
+        <div style="position: relative; width: 100%; max-width: 900px; margin: 20px auto;">
+            <iframe id="manualFrame"
+                style="width: 100%; height: 90vh; border: none; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);"></iframe>
+        </div>
+    </div>
+
 </body>
 
 </html>
