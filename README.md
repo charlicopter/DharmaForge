@@ -1,1338 +1,401 @@
-\# In short:
+## A Note Before You Begin
 
+If DharmaForge feels uneasy to use at first, that reaction is expected.
 
+This is not a tool designed to smooth over uncertainty or guide you along a predefined path. It is designed to make structure visible — including incomplete, contradictory, or unresolved structure.
 
-• A structured knowledge modeling environment with rigorous validation and referential integrity.
+You may encounter missing links, broken references, empty fields, or states that other software would normally hide or repair. These are not errors to be eliminated on sight. They are part of the model as it exists right now.
 
+DharmaForge does not rush you toward correctness. It gives you time to think.
 
+If you are looking for a system that automatically cleans up after you, this will feel uncomfortable. If you are looking for a system that respects unfinished thought, read on.
 
-• Every piece of data has a precise location and ownership.
+---
 
+# The DharmaForge Constitution
 
+## Purpose
 
-• DharmaForge enforces hierarchy, ownership, and data contracts to ensure every piece of information has a precise location and well-defined relationships.
+DharmaForge exists to make **structural truth explicit**.
 
+It is a system for modeling entities, relationships, and ownership without inference, automation, or repair. Its purpose is not convenience, speed, or presentation, but fidelity: the faithful preservation of intent and structure over time.
 
+This constitution defines the non‑negotiable rules that govern DharmaForge. Any implementation, interface, or extension that violates these rules is not DharmaForge.
 
-\# Core Concepts
+---
 
-DharmaForge is built around three key elements:
+## Foundational Principles
 
+### 1. Identity Is Sacred
 
+Every instance in DharmaForge is identified by a UUID. That UUID is the identity of the instance and must never change.
 
-\## Blueprints:
+Names, labels, and paths are descriptive only. They may change freely. Identity may not.
 
-Define the structure of data. They are the architectural plans from which instances are created.
+**Reasoning:**
+Without stable identity, references become ambiguous, history collapses, and refactoring becomes destructive. DharmaForge treats identity as the anchor that allows structure to evolve without erasing meaning.
 
+---
 
+### 2. Ownership Is Explicit and Singular
 
-\### Each blueprint contains:
+Every runtime instance has exactly one owner, except the root. Ownership is established only through contain‑mode instantiation.
 
+There is no inferred ownership. There is no shared ownership. There is no implicit parentage.
 
+**Reasoning:**
+Ownership defines lifecycle. Without clear ownership, deletion, movement, and mutation become unsafe. DharmaForge requires ownership to be explicit so consequences are visible and intentional.
 
-• id (UUID) – unique identifier
+---
 
+### 3. Reference Is Not Ownership
 
+References store UUIDs only. They do not imply containment, lifecycle control, or responsibility.
 
-• name (string) – descriptive name (e.g., "Task", "User", "Document")
+A reference may be broken. A broken reference is a valid state.
 
+**Reasoning:**
+Real systems contain incomplete information, stale links, and unresolved dependencies. DharmaForge preserves these conditions rather than concealing them, because absence and breakage are often meaningful.
 
+---
 
-• type (string) – category for filtering (e.g., "Work", "People", "Content")
+### 4. Broken States Are First‑Class
 
+Invalid, incomplete, or broken states are allowed to exist.
 
+DharmaForge may detect and surface such states, but it may not repair them automatically or silently.
 
-• fields – array of field definitions
+**Reasoning:**
+Automatic repair destroys intent. DharmaForge treats brokenness as information, not error. The system’s responsibility is to reveal structure, not to correct it.
 
+---
 
+### 5. Mutation Is Explicit
 
-• isStatic (boolean) – true if this blueprint defines reusable shapes with defaults
+All mutations must be deliberate, visible actions.
 
+There are no background reconciliation passes. There are no hidden cascades. There are no inferred defaults.
 
+**Reasoning:**
+Hidden mutation breaks trust. DharmaForge requires every structural change to be traceable to an explicit decision made by the user.
 
-• staticValues – default values for static blueprints
+---
 
+### 6. Validation Does Not Mutate State
 
+Validation may analyze and report on the structure.
 
-\### Static blueprints:
+Validation may never modify the structure it inspects.
 
-Define shapes and defaults but do not appear as runtime instances.
+**Reasoning:**
+Inspection and mutation must remain separate. When validation mutates state, analysis becomes untrustworthy.
 
-\# Fields:
+---
 
-Define the type and behavior of each data slot in a blueprint.
+### 7. Blueprints Are Not Instances
 
+Blueprints and static shapes define structure. They are not runtime entities.
 
+They may not appear in runtime graphs. They may not be owned or referenced as instances.
 
-\## Field Kinds
+**Reasoning:**
+Separating definition from instantiation prevents category errors and preserves the clarity of the model.
 
+---
 
+### 8. The UI Must Not Infer Intent
 
-\### Primitive
+The interface may present options and warnings.
 
+It may not guess what the user means, auto‑select defaults that imply commitment, or silently repair structure.
 
+**Reasoning:**
+Inference trades correctness for convenience. DharmaForge refuses this trade.
 
-• Scalar values (text, number)
+---
 
+## Field Semantics
 
+Fields in DharmaForge have precise meaning. Their behavior is defined by their kind, not by context or usage.
 
-• Example: "title": "Math Knowledge Base"
+- **Primitive fields** store scalar values only.
+- **Contain instantiators** establish ownership and lifecycle.
+- **Reference instantiators** store UUIDs without ownership.
+- **Instantiator lists** behave identically, but allow multiplicity.
 
+Changing a field’s kind may destroy data. Such actions must be explicit and warned.
 
+---
 
-\### Instantiators (contain mode)
+## Deletion Rules
 
+- Deleting an instance deletes all instances it owns.
+- Deleting a reference removes only the UUID.
+- Removing a contain‑mode field must either cascade deletion or be blocked.
 
+No operation may result in multiple ownership.
 
-• instantiators are precursors to instances: Defined as fields, they're populated by other blueprints of a matching type once a type is set in the editor. Once that relationship is established, the engine creates an instance (with a unique UUID) in the hierarchy. 
+---
 
+## Validation Guarantees
 
+A conforming DharmaForge implementation must be able to detect:
 
-• Ownership link to a single child instance.
+- Duplicate UUIDs
+- Multiple ownership
+- Orphaned non‑root instances
+- Leakage of static shapes into runtime graphs
+- Broken references (as warnings)
 
+Detection does not imply repair.
 
+---
 
-• Parent owns child; deleting parent deletes child
+## AI Constraints
 
+AI systems interacting with DharmaForge must obey all invariants.
 
+AI may propose changes. AI may analyze structure. AI may not autonomously mutate state.
 
-• Creates instances from blueprints with fieldMode: CONTAIN
+Any AI‑generated mutation must validate before acceptance.
 
+---
 
+## Scope and Limits
 
-\### Instantiators (reference mode)
+DharmaForge is not a database, a document editor, a simulation engine, or a productivity platform.
 
+It does not execute logic. It does not resolve ambiguity. It does not optimize for ease of use.
 
+It exists to preserve structural truth.
 
-• Reference link to a single existing instance
+---
 
+## Closing Statement
 
+DharmaForge is intentionally strict.
 
-• No ownership; just points to another instance
+Its constraints are not incidental; they are the point. Any feature, extension, or interface that weakens these rules undermines the system’s purpose.
 
+This constitution exists to prevent that erosion.
 
+If you accept these terms, DharmaForge will show you your structure honestly.
 
-• References existing instances with fieldMode: REFERENCE
+If you do not, it will not pretend to be something else.
 
 
+---
 
-\### instantiatorList (contain mode)
+## How DharmaForge Differs From Other Tools
 
+DharmaForge is often compared to note-taking apps, graph databases, game engines, or knowledge graphs. These comparisons are useful only up to a point. The differences matter more than the similarities.
 
+**Compared to productivity and knowledge tools (Notion, Obsidian, Roam):**
+Those tools prioritize convenience, automatic organization, and inferred structure. They often repair broken links, auto-create missing objects, or silently reshape data to preserve usability. DharmaForge does none of this. If a relationship is broken, it stays broken. If structure is incomplete, it remains visible as such. The system prefers truth over smoothness.
 
-• Ownership link to multiple child instances
+**Compared to graph databases and modeling tools:**
+Graph systems typically enforce schemas or normalize data behind the scenes. DharmaForge exposes structure directly and allows it to be wrong. Invalid or partial graphs are not errors to be fixed; they are states to be examined.
 
+**Compared to game engines or world-building tools:**
+Game engines tend to assume runtime correctness and often collapse authoring-time ambiguity into runtime certainty. DharmaForge is explicitly *not* a runtime engine. Blueprints and static shapes are authoring constructs only. Nothing is assumed to be executable or complete.
 
+**Compared to an IDE:**
+An IDE does not write correct programs for you; it provides visibility, warnings, and tools to reason about code. Broken builds, type errors, and incomplete implementations are first-class states. DharmaForge takes the same stance toward structure. It is closer to an IDE for structure than to a generator or automation system. The presence of warnings does not imply automatic fixes.
 
-• Parent owns all children; deleting parent deletes all children
+---
 
+## What DharmaForge Is Not
 
+DharmaForge is not an automation engine. It will not infer intent.
 
-• Creates multiple instances with fieldMode: CONTAIN
+It is not a recommendation system. It will not suggest "better" structures.
 
+It is not a self-healing graph. It will not repair broken references or missing ownership.
 
+It is not a runtime system. It does not execute, simulate, or resolve behavior.
 
-\### instantiatorList (reference mode)
+It is not a collaborative consensus tool. Conflicts are not merged or smoothed over.
 
+If you are looking for a system that optimizes for ease, speed, or guardrails, DharmaForge is likely the wrong tool.
 
+---
 
-• Reference link to multiple existing instances
+## Invalid States Are Intentional
 
+DharmaForge allows and preserves invalid states by design. These include, but are not limited to:
+- Broken references
+- Missing type filters
+- Orphaned instances
+- Incomplete ownership chains
 
+Invalid does not mean meaningless. Many real design and reasoning processes pass through states that are incomplete, contradictory, or temporarily inconsistent. DharmaForge treats these as legitimate phases, not errors to be erased.
 
-• No ownership; just points to other instances
+Warnings may be shown. State is never mutated as a side effect of validation.
 
+---
 
+## Validation Philosophy
 
-• References multiple existing instances with fieldMode: REFERENCE
+Validation in DharmaForge is observational, not corrective.
 
+It may:
+- Detect and surface structural violations
+- Report ownership conflicts
+- Warn about broken references or missing types
 
+It may not:
+- Modify data
+- Create or delete instances
+- Reassign ownership
+- Infer intent
 
-\### InstanceReference
+This separation is strict. Validation exists to inform human judgment, not replace it.
 
+---
 
+## On AI and Automation
 
-• Non-owning references to instance(s)
+DharmaForge may integrate with AI-assisted tools, but AI is never autonomous within the system.
 
+AI may:
+- Read structure
+- Propose mutations
+- Simulate outcomes
 
+AI may not:
+- Commit changes
+- Repair structure automatically
+- Bypass validation or invariants
 
-• Stored as array of UUIDs
+All mutations must be explicit and attributable.
 
+---
 
+## Anticipated Criticisms
 
-• Used for semantic relationships, tags, associations
+**"This feels hostile."**
+The system prioritizes clarity over comfort. This is intentional.
 
+**"Why won’t it just fix things?"**
+Because fixing requires assumptions. Assumptions destroy provenance.
 
+**"This is unfinished."**
+DharmaForge distinguishes between incomplete *models* and incomplete *tools*. The former are allowed. The latter are not silently masked.
 
-• No implied ownership or ordering
+**"This could be simpler."**
+Simplicity achieved by hiding complexity is not simplicity; it is opacity.
 
+---
 
+## Amendment and Versioning
 
-\### InstanceReferenceList
+This constitution is versioned.
 
+Changes may occur, but no version will retroactively redefine the meaning of existing structures. Backward reinterpretation is forbidden.
 
+Any amendment must:
+- State what invariant it affects
+- State why the previous rule was insufficient
+- Preserve explicitness and non-inference
 
-• Ordered, non-owning list of references
+---
 
+## Final Note
 
+DharmaForge is designed for people who care more about structural truth than immediate usability.
 
-• Stored as array of UUIDs with meaningful sequence
+If that tradeoff feels uncomfortable, the system is working as intended.
 
 
+---
 
-• Order is semantically significant (priority, steps, playlist order)
+## Why It Feels Uncomfortable
 
+Most software is designed to protect you from seeing your own uncertainty.
 
+DharmaForge is not.
 
-• UI displays numbered list with drag-to-reorder capability
+If you feel a low-grade tension while using it — a sense that the tool is refusing to “help” in ways you expect — that reaction is not a bug. It is the consequence of a different set of priorities.
 
+### You Can See Incomplete Thought
 
+Most tools hide intermediate states. They autosave, auto-correct, auto-complete, and quietly repair structures before you ever see them.
 
-\### Field Metadata
+DharmaForge shows you the shape *while it is still forming*.
 
-Fields may include:
+You can have fields that don’t yet point anywhere, references to things that don’t exist anymore, and structures that are valid in isolation but unresolved in context.
 
+This is uncomfortable because people are trained to equate visibility with correctness. DharmaForge breaks that association.
 
+### Errors Are Not Rescued
 
-• primitiveType → "TEXT" or "NUMBER" (for primitive fields)
+In most systems, an error is a failure that must be resolved immediately.
 
+In DharmaForge, an error is an observation.
 
+Broken references, missing filters, or orphaned instances are allowed to exist because they represent real modeling conditions. You are permitted to leave them unresolved while you think.
 
-• cardTypeFilter → restricts which blueprint types can be linked
+This feels wrong at first because modern software treats intervention as kindness. DharmaForge treats restraint as respect.
 
+### The Tool Will Not Decide For You
 
+DharmaForge refuses to guess your intent.
 
-• fieldMode → "CONTAIN" or "REFERENCE" (for instantiator/instantiatorList)
+It will not auto-select the “closest” blueprint, infer what you meant by a partial structure, or reinterpret your model to make it nicer.
 
+You must choose when something is linked, moved, created, or left alone.
 
+That responsibility creates friction — and that friction is intentional. The tool will not quietly rewrite your thinking on your behalf.
 
-• isFieldStatic → marks field as using static default
+### You Can Break Things Without Being Stopped
 
+DharmaForge allows you to do things that other tools prevent: moving instances in ways that create orphans, deleting structures that are still referenced, or constructing contradictory graphs.
 
+Most software enforces local correctness at all times.
 
-\# Instances
+DharmaForge enforces structural honesty instead.
 
-Instances are concrete data objects created from blueprints.
+If something is broken, it stays broken until *you* decide what that means.
 
-\### Each instance contains:
+### There Is No “Happy Path”
 
+Many tools are optimized around a golden workflow. Deviating from it feels like misuse.
 
+DharmaForge has no preferred path. It does not reward linear progress or punish detours.
 
-• id (UUID) – unique identifier
+As a result, you do not get the emotional feedback loop of “doing it right.” You get clarity instead.
 
+That can feel isolating.
 
+### It Treats You Like an Author, Not a User
 
-• templateId (UUID) – the blueprint it derives from
+DharmaForge assumes you can hold contradictory or incomplete ideas without collapsing.
 
+It does not guide you gently forward. It does not smooth rough edges. It does not apologize for ambiguity.
 
+This can feel confrontational — especially if you are used to tools that continuously reassure you.
 
-• fieldValues – actual values for each field defined in the blueprint
+DharmaForge offers no reassurance. Only fidelity.
 
+### The Discomfort Is Diagnostic
 
+The unease many people feel when first using DharmaForge is not confusion about the interface.
 
-• \\\_parent (UUID) – the owning instance (null for root)
+It is exposure.
 
+You are seeing where your model is vague, where your assumptions conflict, and where you were relying on the tool to make decisions for you.
 
+That discomfort is similar to reading raw source code or unpolished drafts. It removes the illusion of completion.
 
-• \\\_parentField (UUID) – the field in parent that contains this instance
+### On Trust
 
+If you sit with the discomfort long enough, something shifts.
 
+You stop asking why the tool will not fix something for you, and start asking why you want it fixed right now.
 
-\# Ownership and Reference Semantics
+At that point, DharmaForge stops feeling hostile and starts feeling honest.
 
-\### Ownership Rules:
+It does not try to make you comfortable.
 
-
-
-• Every instance except root has exactly one parent.
-
-
-
-• Only instantiator (contain) and instantiatorList (contain) establish ownership.
-
-
-
-• Deleting a parent cascades to all owned children.
-
-
-
-• Owned children appear in the Instance Tree hierarchy.
-
-
-
-\# Reference Rules
-
-
-
-• instantiator (reference) and instantiatorList (reference) create non-owning links
-
-
-
-• InstanceReference and InstanceReferenceList are always non-owning
-
-
-
-• Deleting a parent does NOT cascade to referenced instances
-
-
-
-• References do NOT appear as nodes in the Instance Tree hierarchy
-
-
-
-• Broken references are valid but flagged in validation
-
-
-
-\# Hard Contract Rules
-
-\### DharmaForge enforces strict invariants:
-
-
-
-• UUIDs are immutable and unique – no ID reuse, ever
-
-
-
-• Single ownership – instances cannot have multiple parents
-
-
-
-• No orphans – all non-root instances must be reachable from root
-
-
-
-• Static blueprints are not runtime instances – they define shapes only
-
-
-
-• UI is observational – never auto-fixes or mutates state "helpfully"
-
-
-
-• Broken references are valid – must be flagged but not auto-deleted
-
-
-
-• Validation reveals, never fixes – invalid states remain visible
-
-
-
-\# State Structure
-
-
-
-javascriptstate = {
-
-
-
-\&nbsp; blueprints: Blueprint\\\[],           // All blueprint definitions
-
-
-
-\&nbsp; instances: { \\\[uuid]: Instance },  // All runtime instances
-
-
-
-\&nbsp; rootInstanceId: string            // UUID of the single root instance
-
-
-
-}
-
-
-
-The root instance is the single entry point to the entire data graph.
-
-\# Three-Pane Interface
-
-\### Instance Tree (Left Panel)
-
-
-
-• Displays the full containment hierarchy starting from root
-
-
-
-• Shows only contain-mode relationships (ownership tree)
-
-
-
-• Does NOT show reference-mode or InstanceReference links
-
-
-
-• Click to select and navigate instances
-
-
-
-• Expand/collapse nodes to explore nested structures
-
-
-
-• Verbose mode shows field values inline
-
-
-
-\## Instance/Blueprint Editor (Center Panel)
-
-Main workspace for editing the selected item.
-
-\### When an instance is selected:
-
-
-
-• Edit primitive field values (text, number)
-
-
-
-• Add/remove instantiator children (contain or reference mode)
-
-
-
-• Add/remove instantiatorList children (contain or reference mode)
-
-
-
-• Manage InstanceReference and InstanceReferenceList links
-
-
-
-• Override static defaults (with visual indicators)
-
-
-
-• Navigate via clickable reference chips
-
-
-
-\### When a blueprint is selected:
-
-
-
-• Edit blueprint name and type
-
-
-
-• Add/remove/reorder fields
-
-
-
-• Set field kinds and constraints
-
-
-
-• Define static default values for primitives
-
-
-
-• View instance usage statistics
-
-
-
-\# Blueprint Library (Right Panel)
-
-
-
-• Searchable list of all blueprints
-
-
-
-• Create new blueprints via "New Blueprint" button
-
-
-
-• Click a blueprint to edit its definition in the center panel
-
-
-
-• Delete blueprints (blocked if instances exist)
-
-
-
-• Visual indicators for static blueprints
-
-
-
-\## Interaction Flow
-
-• Select an instance in the Instance Tree (left)
-
-
-
-• Editor activates for that instance (center)
-
-
-
-• Edit fields – all changes respect contract rules
-
-
-
-• Or select a blueprint in the Blueprint Library (right)
-
-
-
-• Editor switches to blueprint editing mode
-
-
-
-• Create instances from the selected blueprint
-
-
-
-• Validation runs in the background, surfaces errors without fixing
-
-
-
-\# Key Behaviors
-
-
-
-• Containment enforces single ownership – multi-parent selection blocked
-
-
-
-• Static blueprints are read-only – fields visible for reference only
-
-
-
-• References are UUID-based – picker UI for selecting target instances
-
-
-
-• Broken references are surfaced – flagged in validation, not auto-fixed
-
-
-
-• UI prevents contract violations – structural safeguards built-in
-
-
-
-• Drag-and-drop reordering – available for InstanceReferenceList only
-
-
-
-• Smart instance labeling – uses primitive values → container names → IDs
-
-
-
-• Click navigation – reference chips are clickable to jump to targets
-
-
-
-\# Field Kind Decision Guide:
-
-\### Use instantiator (contain) when:
-
-
-
-• Parent owns and manages child's lifecycle
-
-
-
-• Child only makes sense in parent's context
-
-
-
-• Example: Document → ContentBlocks, Form → FormFields
-
-
-
-\### Use instantiator (reference) when:
-
-
-
-• Parent needs a single reference to an existing instance
-
-
-
-• Referenced instance exists independently
-
-
-
-• Example: Task → assignedUser, Invoice → customer
-
-
-
-\### Use instantiatorList (contain) when:
-
-
-
-• Parent owns and manages multiple children
-
-
-
-• Children only make sense in parent's context
-
-
-
-• Example: Project → Tasks, Album → Photos
-
-
-
-\### Use instantiatorList (reference) when:
-
-
-
-• Parent needs multiple references to existing instances
-
-
-
-• Referenced instances exist independently
-
-
-
-• Example: Project → teamMembers, Article → relatedArticles
-
-
-
-\### Use InstanceReference when:
-
-
-
-• Representing semantic relationships (not ownership)
-
-
-
-• Need to reference instances across hierarchy
-
-
-
-• Order doesn't matter
-
-
-
-• Example: Task → tags, Person → interests
-
-
-
-\### Use InstanceReferenceList when:
-
-
-
-• Representing ordered semantic relationships
-
-
-
-• Order is meaningful (priority, sequence, ranking)
-
-
-
-• Need explicit reordering UI
-
-
-
-• Example: Playlist → songs, Recipe → steps, TodoList → tasks
-
-
-
-\# Example Use Case
-
-Modeling a Mathematics Knowledge Base:
-
-
-
-\### Blueprints:
-
-
-
-• Root (type: "Root")
-
-
-
-• Concept (type: "Content")
-
-
-
-• Example (type: "Content")
-
-
-
-• Task (type: "Work")
-
-
-
-\### Instances:
-
-
-
-• Root: "Math Knowledge Base"
-
-
-
-• Concept: "Algebra" (contained)
-
-
-
-\## Example: "Linear Equations" (contained)
-
-
-
-\# Example: "Quadratic Formula" (contained)
-
-
-
-• Concept: "Geometry" (contained)
-
-
-
-• Task: "Prove Pythagorean Theorem" (contained)
-
-
-
-\### References:
-
-
-
-• "Algebra" → InstanceReference to "Number Theory" (semantic link)
-
-
-
-• "Linear Equations" → InstanceReference to "Variables" (related concept)
-
-
-
-\### Result:
-
-
-
-• Containment ensures "Algebra" belongs to "Math Knowledge Base"
-
-
-
-• References allow pointing to "Number Theory" without ownership
-
-
-
-• Deleting "Algebra" cascades to "Linear Equations" and "Quadratic Formula"
-
-
-
-• Deleting "Algebra" does NOT cascade to "Number Theory" (reference only)
-
-
-
-\# Code Constants (Legacy Naming)
-
-Internal code uses legacy constant names for backward compatibility:
-
-
-
-\&nbsp;   const FIELD\\\_KIND = {
-
-
-
-\&nbsp;       PRIMITIVE: 'primitive',
-
-
-
-\&nbsp;       CARD\\\_REF: 'instantiator',
-
-
-
-\&nbsp;       LIST\\\_OF\\\_CARDS: 'instantiatorList',
-
-
-
-\&nbsp;       ENTITY\\\_REF: 'instanceReference',
-
-
-
-\&nbsp;       LIST\\\_ENTITY\\\_REF: 'instanceReferenceList'
-
-
-
-\&nbsp;     };
-
-
-
-const FIELD\\\_MODE = {
-
-
-
-\&nbsp;   CONTAIN: 'CONTAIN',    // Ownership
-
-
-
-\&nbsp;   REFERENCE: 'REFERENCE' // Non-ownership
-
-
-
-};
-
-
-
-const PRIMITIVE\\\_TYPE = {
-
-
-
-\&nbsp;   TEXT: 'TEXT',
-
-
-
-\&nbsp;   NUMBER: 'NUMBER'
-
-
-
-};
-
-
-
-UI and documentation use conceptual names (instantiator, InstanceReference, etc), while code uses legacy constants for stability.
-
-
-
-\# Deletion Rules and Cascade Behavior
-
-Deletion in DharmaForge is explicit, predictable, and follows ownership semantics strictly. The system never silently deletes data, and all cascading behavior is deterministic.
-
-\### Instance Deletion
-
-Deleting an instance with contain-mode children:
-
-
-
-• All owned children are cascaded deleted (children of children, recursively)
-
-
-
-• Referenced instances (reference-mode, InstanceReference, InstanceReferenceList) are NOT deleted
-
-
-
-• Broken references to the deleted instance are left intact and flagged
-
-
-
-• User is warned about cascading deletions with affected instance count
-
-
-
-Deleting an instance that is referenced by others:
-
-
-
-• Instance is deleted normally
-
-
-
-• References pointing to it become broken references
-
-
-
-• Broken references are surfaced in validation but not auto-removed
-
-
-
-• Referencing instances remain valid; user must clean up references manually
-
-
-
-Example cascade:
-
-
-
-Project (deleted)
-
-
-
-&nbsp; ├─ Task A (contain) → DELETED (cascade)
-
-&nbsp; 
-
-&nbsp; │   └─ Subtask (contain) → DELETED (cascade)
-
-&nbsp; 
-
-&nbsp; ├─ Task B (contain) → DELETED (cascade)
-
-&nbsp; 
-
-&nbsp; └─ User "Alice" (reference) → NOT DELETED (reference only)
-
-Result:
-
-
-
-• Project, Task A, Subtask, and Task B are all deleted
-
-
-
-• User "Alice" remains in the system
-
-
-
-• Any other instances referencing Task A or Task B now have broken references
-
-
-
-\### Blueprint Deletion
-
-
-
-• Blueprints cannot be deleted if instances exist:
-
-
-
-• Attempting to delete a blueprint with instances is blocked hard
-
-
-
-• User receives error: "Cannot delete blueprint 'Task' - 5 instance(s) still exist"
-
-
-
-• Error lists all instances by location (e.g., "Instance a1b2c3d4 in Root.tasks")
-
-
-
-• User must explicitly delete all instances first, then delete the blueprint
-
-
-
-• No "force delete" option – correctness over convenience
-
-
-
-\### Reasoning:
-
-
-
-• Prevents creating orphaned instances with deleted blueprints
-
-
-
-• Prevents corrupting validation (instances reference non-existent blueprints)
-
-
-
-• Forces explicit cleanup workflow: instances first, blueprint second
-
-
-
-• Aligns with Hard Contract: no helpful corruption, ever
-
-
-
-\### Example:
-
-User attempts: Delete blueprint "Task"
-
-System checks: 3 instances of "Task" exist
-
-System blocks: Shows error with instance locations
-
-User must: Delete instances manually, then delete blueprint
-
-
-
-\### Reference Cleanup
-
-When a referenced instance is deleted:
-
-
-
-• References become broken (UUID points to non-existent instance)
-
-
-
-• Validation flags: "Broken reference to deleted instance abc123"
-
-
-
-• UI shows: "⚠️ Deleted instance" in reference chips
-
-
-
-• User must manually:
-
-
-
-• Remove broken references via × button
-
-
-
-• Or accept validation warnings
-
-
-
-\### Why broken references are allowed:
-
-
-
-• Hard Contract Rule 6: Broken references are valid
-
-
-
-• Deletion is explicit; cleanup is explicit
-
-
-
-• System reveals corruption but doesn't auto-fix
-
-
-
-• User maintains full control over data integrity
-
-
-
-\### Root Instance Protection
-
-• Root instance cannot be deleted via UI
-
-• Root is the single entry point to the entire data graph
-
-• Deleting root would orphan the entire instance tree
-
-• To "delete everything," user must delete all children, then create new root
-
-
-
-\### Field Deletion from Blueprints
-
-When a field is removed from a blueprint:
-
-
-
-• All instances of that blueprint retain the field value in fieldValues
-
-
-
-• Field value becomes "orphaned data" (not defined in blueprint)
-
-
-
-• Validation does NOT flag this as an error
-
-
-
-• Data is preserved for potential blueprint rollback
-
-
-
-• User can clean up manually via export/import or custom script
-
-
-
-\### Why field data persists:
-
-Allows blueprint evolution without data loss
-
-• Supports undo operations cleanly
-
-• Follows observability principle: show data, don't hide it
-
-
-
-\### Orphan Cleanup Tool
-
-"Clean Orphans" button:
-
-
-
-• Finds all instances unreachable from root via contain-mode relationships
-
-
-
-• Shows list of orphaned instances with details
-
-
-
-• User confirms deletion explicitly
-
-
-
-• Removes orphaned instances from registry
-
-
-
-• Does NOT remove instances with broken references (those are reachable but flagged)
-
-
-
-\### rphan causes:
-
-Manual JSON editing that breaks containment
-
-Bugs that leave instances detached
-
-Import of partial data structures
-
-
-
-Example:
-
-Found 3 orphaned instances:
-
-&nbsp; 
-
-• Task "Legacy Item" (unreachable) (a1b2c3d4)
-
-&nbsp; 
-
-&nbsp;• User "Old Account" (unreachable) (e5f6g7h8)
-
-&nbsp; 
-
-&nbsp;• Document "Draft" (unreachable) (i9j0k1l2)
-
-
-
-Delete these instances?
-
-(!!!) This can be undone only via "Undo".
-
-
-
-\### Deletion Philosophy:
-
-DharmaForge treats deletion as a structural operation with explicit consequences:
-
-
-
-Ownership determines cascade: 
-
-
-
-• Contain-mode deletes children, reference-mode does not
-
-
-
-• Broken references are valid – flagged but not auto-removed
-
-
-
-• Blueprint deletion is blocked – instances must be deleted first
-
-
-
-• No silent cleanup – all deletions are explicit and user-initiated
-
-
-
-• Undo is available – deletion mistakes can be reversed via undo stack
-
-
-
-• Validation reveals – broken references and orphans are surfaced, not hidden
-
-
-
-This ensures:
-
-
-
-• Users understand the impact of deletions before they happen
-
-
-
-• No data is lost silently
-
-
-
-• Referential integrity violations are visible
-
-
-
-• System remains in a valid, observable state
-
-
-
-• Correctness is prioritized over convenience
-
-
-
-\# Validation (Important!)
-
-Validation runs automatically and surfaces errors without mutating state.
-
-\### Validates:
-
-
-
-• All UUIDs are valid format
-
-
-
-• All instances reference existing blueprints
-
-
-
-• All field values match their field kind expectations
-
-
-
-• No orphaned instances (except root)
-
-
-
-• No circular references in containment tree
-
-
-
-• No multi-ownership violations
-
-
-
-• Broken references are flagged but allowed
-
-
-
-\### Does NOT:
-
-
-
-• Auto-delete broken references
-
-
-
-• Auto-fix invalid data
-
-
-
-• Mutate state to "correct" errors
-
-
-
-• Hide invalid data from the user
-
-
-
-\# Static Defaults
-
-Blueprints can define static default values for primitive fields.
-
-\### Behavior:
-
-
-
-• New instances inherit static defaults automatically
-
-
-
-• Instances can override defaults by editing the field
-
-
-
-• Overridden values are independent from blueprint changes
-
-
-
-• Visual indicators show defaults vs overrides (amber borders, tooltips)
-
-
-
-• "Reset to Default" button available for overridden fields
-
-
-
-\### Example:
-
-
-
-javascript{
-
-\&nbsp; "id": "task\\\_blueprint",
-
-\&nbsp; "name": "Task",
-
-\&nbsp; "fields": \\\[
-
-\&nbsp;   { "id": "status\\\_field", "name": "status", "fieldKind": "PRIMITIVE" }
-
-\&nbsp; ],
-
-\&nbsp; "staticValues": {
-
-\&nbsp;   "status\\\_field": "TODO"  // Default for new instances
-
-\&nbsp; }
-
-}
-
-
-
-\# Philosophy
-
-DharmaForge prioritizes correctness over comfort. The system:
-
-
-
-• Makes invalid states impossible to create through the UI
-
-
-
-• Surfaces errors clearly without hiding them
-
-
-
-• Refuses to auto-fix or mutate data "helpfully"
-
-
-
-• Enforces single ownership and referential integrity
-
-
-
-• Provides escape hatches (validation warnings) but never silent fixes
-
-
-
-The goal is a trustworthy structured environment where users can model complex knowledge with confidence that the system enforces constraints rigorously and transparently.
-
-
-
-\# Technical Notes
-
-
-
-• Single HTML file – entire application in one file for portability
-
-
-
-• localStorage persistence – state saved automatically
-
-
-
-• Undo/redo support – full history for all mutations
-
-
-
-• Export/import – JSON export for data backup and migration
-
-
-
-• Validation on demand – "Validate" button for comprehensive checks
-
-
-
-• Orphan cleanup – removes unreachable instances (user-triggered)
-
-• Deep linking – navigate to instances via selection
-
-
-
-• Verbose mode – inline field values in Instance Tree
-
-
-
-\# Contributing
-
-DharmaForge is a single-file application with a strict architectural contract \& constitution. Contributions should:
-
-Respect the Hard Contract rules
-
-Never auto-fix or mutate state silently
-
-Prioritize correctness and explicitness
-
-Maintain referential integrity
-
-
-
-Include validation for new features
-
-
-
-
+It tries to make your thinking visible.
 
