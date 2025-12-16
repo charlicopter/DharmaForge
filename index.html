@@ -5682,12 +5682,10 @@
                                 toggleBtn.innerHTML = '✏️ Edit';
                                 toggleBtn.title = 'Switch to editor';
                             } else {
-                                if (hasMarkdown) {
-                                    toggleBtn.innerHTML = '📄 Preview';
-                                    toggleBtn.title = 'Show formatted preview';
-                                } else {
-                                    toggleBtn.style.display = 'none';
-                                }
+                                toggleBtn.innerHTML = '📄 Preview';
+                                toggleBtn.title = 'Show formatted preview';
+                                // Show toggle even for empty/non-markdown fields
+                                // User might want to preview as they type
                             }
 
                             toggleBtn.onclick = () => {
