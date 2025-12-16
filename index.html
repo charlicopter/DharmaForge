@@ -246,7 +246,7 @@
         input[type=text],
         input[type=number],
         select,
-        /*textarea {
+        textarea {
             background: #071018;
             border: 1px solid var(--border);
             padding: 4px 6px;
@@ -260,7 +260,7 @@
             font-size: 13px;
             height: auto;
             margin: 0;
-        }*/
+        }
 
         select option {
             background: #071018;
@@ -1225,6 +1225,7 @@
             box-shadow: 0 0 6px rgba(255, 255, 255, 0.08);
             transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
         }
+
         /* === RESIZABLE DIVIDERS === */
         .divider {
             width: 4px;
@@ -1409,6 +1410,228 @@
                 const v = c === 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
+        }
+
+        // ============================================================================
+        // BLUEPRINT GENERATOR
+        // ============================================================================
+
+        function generateBlueprintFromTemplate(instanceId) {
+            const inst = findInstanceById(instanceId);
+            if (!inst) {
+                alert('Template instance not found');
+                return;
+            }
+
+            const blueprint = findBlueprintById(inst.templateId);
+            if (!blueprint || blueprint.name !== 'Blueprint Generator') {
+                alert('This is not a Blueprint Generator instance');
+                return;
+            }
+
+            // Extract blueprint_name and blueprint_type
+            let blueprintName = '';
+            let blueprintType = '';
+            let fieldsFieldId = null;
+
+            for (const field of blueprint.fields) {
+                const value = inst.fieldValues[field.id];
+                if (field.name === 'blueprint_name') {
+                    blueprintName = value || '';
+                }
+                if (field.name === 'blueprint_type') {
+                    blueprintType = value || '';
+                }
+                if (field.name === 'fields') {
+                    fieldsFieldId = field.id;
+                }
+            }
+
+            // Validate basic fields
+            if (!blueprintName.trim()) {
+                alert('Blueprint name is required');
+                return;
+            }
+            if (!fieldsFieldId) {
+                alert('Fields configuration not found');
+                return;
+            }
+
+            // Get Field Spec instances
+            const fieldSpecIds = inst.fieldValues[fieldsFieldId] || [];
+            if (!Array.isArray(fieldSpecIds) || fieldSpecIds.length === 0) {
+                alert('No fields defined. Add Field Spec instances first.');
+                return;
+            }
+
+            // Read each Field Spec
+            const fieldSpecs = [];
+            for (const specId of fieldSpecIds) {
+                const specInst = findInstanceById(specId);
+                if (!specInst) continue;
+
+                const specBlueprint = findBlueprintById(specInst.templateId);
+                if (!specBlueprint) continue;
+
+                let fieldName = '';
+                let fieldType = 'text'; // default
+                let allowedTypes = '';
+
+                for (const f of specBlueprint.fields) {
+                    const val = specInst.fieldValues[f.id];
+                    if (f.name === 'field_name') fieldName = val || '';
+                    if (f.name === 'field_type') fieldType = val || 'text';
+                    if (f.name === 'allowed_types') allowedTypes = val || '';
+                }
+
+                if (!fieldName.trim()) {
+                    alert(`Field Spec ${specId.slice(0, 8)} has no field_name`);
+                    return;
+                }
+
+                fieldSpecs.push({
+                    name: fieldName.trim(),
+                    type: fieldType.trim().toLowerCase(),
+                    allowedTypes: allowedTypes.trim()
+                });
+            }
+
+            // Check for duplicate blueprint name
+            const existing = state.blueprints.find(bp => bp.name === blueprintName.trim());
+            if (existing) {
+                if (!confirm(`Blueprint "${blueprintName}" already exists. Overwrite?`)) {
+                    return;
+                }
+                state.blueprints = state.blueprints.filter(bp => bp.id !== existing.id);
+            }
+
+            // Map field types to DharmaForge field kinds
+            const newFields = [];
+            for (const spec of fieldSpecs) {
+                const fieldDef = {
+                    id: generateUUID(),
+                    name: spec.name
+                };
+
+                // Map type string to field kind
+                switch (spec.type) {
+                    case 'txt':
+                        fieldDef.fieldKind = FIELD_KIND.PRIMITIVE;
+                        fieldDef.primitiveType = PRIMITIVE_TYPE.TEXT;
+                        break;
+                    case 'num':
+                        fieldDef.fieldKind = FIELD_KIND.PRIMITIVE;
+                        fieldDef.primitiveType = PRIMITIVE_TYPE.NUMBER;
+                        break;
+                    case 'ref':
+                        fieldDef.fieldKind = FIELD_KIND.INSTANCE_REFERENCE;
+                        fieldDef.allowedTemplateIds = parseAllowedTypes(spec.allowedTypes);
+                        fieldDef.blueprintTypeFilter = inferBlueprintType(spec.allowedTypes);
+                        break;
+                    case 'ref_list':
+                        fieldDef.fieldKind = FIELD_KIND.INSTANCE_REFERENCE_LIST;
+                        fieldDef.allowedTemplateIds = parseAllowedTypes(spec.allowedTypes);
+                        break;
+                    case 'inst':
+                        fieldDef.fieldKind = FIELD_KIND.INSTANTIATOR;
+                        fieldDef.allowedTemplateIds = parseAllowedTypes(spec.allowedTypes);
+                        fieldDef.blueprintTypeFilter = inferBlueprintType(spec.allowedTypes);
+                        break;
+                    case 'inst_list':
+                        fieldDef.fieldKind = FIELD_KIND.INSTANTIATOR_LIST;
+                        fieldDef.allowedTemplateIds = parseAllowedTypes(spec.allowedTypes);
+                        break;
+                    default:
+                        alert(`Unknown field type: ${spec.type}. Using text.`);
+                        fieldDef.fieldKind = FIELD_KIND.PRIMITIVE;
+                        fieldDef.primitiveType = PRIMITIVE_TYPE.TEXT;
+                }
+
+                newFields.push(fieldDef);
+            }
+
+            // Create blueprint
+            const newBlueprint = {
+                id: generateUUID(),
+                name: blueprintName.trim(),
+                type: blueprintType.trim() || 'Generated',
+                isStatic: false,
+                staticValues: {},
+                fields: newFields
+            };
+
+            // Add to state
+            pushUndo();
+            state.blueprints.push(newBlueprint);
+            invalidateBlueprintMap();
+            save();
+            renderAll();
+
+            alert(`✅ Blueprint "${blueprintName}" created with ${newFields.length} fields!`);
+        }
+
+        function cloneBlueprint(blueprintId) {
+            const original = findBlueprintById(blueprintId);
+            if (!original) {
+                alert('Blueprint not found');
+                return;
+            }
+
+            // Create deep copy
+            const clone = {
+                id: generateUUID(),
+                name: original.name + ' (Copy)',
+                type: original.type,
+                isStatic: original.isStatic,
+                staticValues: JSON.parse(JSON.stringify(original.staticValues || {})),
+                fields: original.fields.map(f => ({
+                    ...f,
+                    id: generateUUID() // New IDs for fields
+                }))
+            };
+
+            pushUndo();
+            state.blueprints.push(clone);
+            invalidateBlueprintMap();
+            save();
+            renderAll();
+
+            alert(`✅ Cloned "${original.name}" as "${clone.name}"`);
+        }
+
+        // Helper: Parse comma-separated blueprint names into IDs
+        function parseAllowedTypes(allowedTypesText) {
+            if (!allowedTypesText || !allowedTypesText.trim()) {
+                return [];
+            }
+
+            const names = allowedTypesText.split(',').map(s => s.trim()).filter(s => s);
+            const ids = [];
+
+            for (const name of names) {
+                const bp = state.blueprints.find(b => b.name === name);
+                if (bp) {
+                    ids.push(bp.id);
+                } else {
+                    console.warn(`Blueprint "${name}" not found for allowed types`);
+                }
+            }
+
+            return ids;
+        }
+
+        // Helper: Infer blueprint type from allowed types list
+        function inferBlueprintType(allowedTypesText) {
+            if (!allowedTypesText || !allowedTypesText.trim()) {
+                return null;
+            }
+
+            const names = allowedTypesText.split(',').map(s => s.trim()).filter(s => s);
+            if (names.length === 0) return null;
+
+            // Get the type from the first blueprint in the list
+            const firstBlueprint = state.blueprints.find(b => b.name === names[0]);
+            return firstBlueprint ? firstBlueprint.type : null;
         }
 
         /**
@@ -1799,12 +2022,15 @@
             updateUndoButtons();
         }
 
-        // HARDENING: Undo with post-restore validation
         function undo() {
             if (!undoStack.length) return;
 
             redoStack.push(deepClone(state));
             state = deepClone(undoStack.pop());
+
+            // Invalidate all caches after state restore
+            invalidateBlueprintMap();
+            invalidateReachabilityCache();
 
             // HARDENING: Validate restored state
             const validation = validateState();
@@ -1824,6 +2050,10 @@
 
             undoStack.push(deepClone(state));
             state = deepClone(redoStack.pop());
+
+            // Invalidate all caches after state restore
+            invalidateBlueprintMap();
+            invalidateReachabilityCache();
 
             // HARDENING: Validate restored state
             const validation = validateState();
@@ -2306,12 +2536,50 @@
                     }
                 }
 
-                if (field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST && Array.isArray(val)) {
-                    for (const id of val) {
-                        if (!findInstanceById(id)) {
-                            errors.push(`broken_link:${field.name}`);
-                        } else if (isInstanceOrphaned(id)) {
-                            warnings.push(`orphaned_link:${field.name}`);
+                // Check primitive type mismatches
+                if (field.fieldKind === FIELD_KIND.PRIMITIVE && val !== undefined && val !== null && val !== '') {
+                    if (field.primitiveType === PRIMITIVE_TYPE.NUMBER) {
+                        if (typeof val !== 'number' || isNaN(val)) {
+                            errors.push(`type_mismatch:${field.name} (expected number, got ${typeof val})`);
+                        }
+                    } else if (field.primitiveType === PRIMITIVE_TYPE.TEXT) {
+                        if (typeof val !== 'string') {
+                            errors.push(`type_mismatch:${field.name} (expected text, got ${typeof val})`);
+                        }
+                    }
+                }
+
+                // Check if value exists for reference/instantiator fields but field kind changed
+                if (field.fieldKind === FIELD_KIND.PRIMITIVE && 
+                    (typeof val === 'object' || (Array.isArray(val) && val.length > 0))) {
+                    errors.push(`type_mismatch:${field.name} (has reference/list data but field is now primitive)`);
+                }
+
+                // Check type filter violations for reference/instantiator fields
+                if ((field.fieldKind === FIELD_KIND.INSTANTIATOR ||
+                     field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST ||
+                     field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE ||
+                     field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) &&
+                    field.blueprintTypeFilter && val) {
+                    
+                    // Get referenced instance IDs
+                    let refIds = [];
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR || 
+                        field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
+                        if (typeof val === 'string') refIds = [val];
+                        else if (Array.isArray(val)) refIds = val; // Handle legacy array format
+                    } else {
+                        refIds = Array.isArray(val) ? val : [];
+                    }
+
+                    // Check each referenced instance's blueprint type
+                    for (const refId of refIds) {
+                        const refInst = findInstanceById(refId);
+                        if (refInst) {
+                            const refBlueprint = findBlueprintById(refInst.templateId);
+                            if (refBlueprint && refBlueprint.type !== field.blueprintTypeFilter) {
+                                errors.push(`filter_mismatch:${field.name} (${refBlueprint.name} is type "${refBlueprint.type}", expected "${field.blueprintTypeFilter}")`);
+                            }
                         }
                     }
                 }
@@ -2364,6 +2632,38 @@
             }
             state.instances[inst.id] = inst;
             invalidateReachabilityCache();  // ADD THIS LINE
+        }
+
+        // ============================================================================
+        // BLUEPRINT GENERATION
+        // ============================================================================
+
+        function quickGenerateBlueprint(instanceId) {
+            const inst = findInstanceById(instanceId);
+            const name = inst.fieldValues['blueprint_name_field_id'];
+            const type = inst.fieldValues['blueprint_type_field_id'];
+            const fieldNames = inst.fieldValues['field_names_field_id'].split(',');
+
+            const newBlueprint = {
+                id: generateUUID(),
+                name: name.trim(),
+                type: type.trim(),
+                isStatic: false,
+                staticValues: {},
+                fields: fieldNames.map(fname => ({
+                    id: generateUUID(),
+                    name: fname.trim(),
+                    fieldKind: FIELD_KIND.PRIMITIVE,
+                    primitiveType: PRIMITIVE_TYPE.TEXT
+                }))
+            };
+
+            pushUndo();
+            state.blueprints.push(newBlueprint);
+            invalidateBlueprintMap();
+            save();
+            renderAll();
+            alert(`Blueprint "${name}" created!`);
         }
 
         // ============================================================================
@@ -3393,7 +3693,21 @@
 
                 const inst = state.instances[instId];
                 const blueprint = findBlueprintById(inst.templateId);
-                if (blueprint && blueprint.type === filterType) {
+
+                // Filter by allowed blueprint IDs (if array) or blueprint type (if string)
+                let matches = false;
+                if (Array.isArray(filterType) && filterType.length > 0) {
+                    // filterType is array of allowed blueprint IDs
+                    matches = filterType.includes(inst.templateId);
+                } else if (typeof filterType === 'string') {
+                    // filterType is blueprint type string (legacy)
+                    matches = blueprint && blueprint.type === filterType;
+                } else {
+                    // No filter - show all
+                    matches = true;
+                }
+
+                if (matches) {
                     // PHASE 1: Filter for orphans if requested
                     if (showOnlyOrphans) {
                         if (!reachable.has(instId) && instId !== state.rootInstanceId) {
@@ -3639,9 +3953,18 @@
          * Get the status of a referenced instance for chip rendering.
          * Returns: { exists, isOrphaned, cssClass, icon, tooltip, label }
          */
-        function getReferenceStatus(refId) {
+        function getReferenceStatus(refId, parentInst = null, field = null) {
             const target = findInstanceById(refId);
             const isOrphaned = target && isInstanceOrphaned(refId);
+
+            // Check type filter mismatch
+            let filterMismatch = false;
+            if (target && field && field.blueprintTypeFilter) {
+                const targetBlueprint = findBlueprintById(target.templateId);
+                if (targetBlueprint && targetBlueprint.type !== field.blueprintTypeFilter) {
+                    filterMismatch = true;
+                }
+            }
 
             if (!target) {
                 return {
@@ -3651,6 +3974,15 @@
                     icon: '🔴',
                     tooltip: 'Broken reference (deleted)',
                     labelSuffix: ' (deleted)'
+                };
+            } else if (filterMismatch) {
+                return {
+                    exists: true,
+                    isOrphaned: false,
+                    cssClass: 'broken',
+                    icon: '🔴',
+                    tooltip: 'Type filter mismatch',
+                    labelSuffix: ' (wrong type)'
                 };
             } else if (isOrphaned) {
                 return {
@@ -4070,6 +4402,17 @@
                 actions.style.gap = '6px';
 
                 if (!isRootBlueprintId(t.id)) {
+                    // Clone button
+                    const cloneBtn = document.createElement('button');
+                    cloneBtn.className = 'btn small';
+                    cloneBtn.textContent = '📋 Clone';
+                    cloneBtn.title = 'Create a copy of this blueprint';
+                    cloneBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        cloneBlueprint(t.id);
+                    };
+                    actions.appendChild(cloneBtn);
+
                     const delBtn = document.createElement('button');
                     delBtn.className = 'btn small danger';
                     delBtn.textContent = 'Delete';
@@ -4110,6 +4453,14 @@
                         if (confirm(`Delete blueprint ${t.name}?`)) {
                             pushUndo();
                             state.blueprints = state.blueprints.filter(blueprint => blueprint.id !== t.id);
+                            invalidateBlueprintMap();
+
+                            // Clear selection if deleted blueprint was selected
+                            if (selected.kind === 'blueprint' && selected.id === t.id) {
+                                selected = { kind: 'instance', id: state.rootInstanceId };
+                                navigateTo('instance', state.rootInstanceId, false);
+                            }
+
                             save();
                             renderAll();
                         }
@@ -4239,8 +4590,38 @@
             }
 
             filterSel.onchange = () => {
+                const newFilter = filterSel.value;
+                const oldFilter = field.blueprintTypeFilter;
+
+                // Check if instances exist with data in this field
+                const instances = Object.values(state.instances).filter(inst => 
+                    inst.templateId === blueprint.id
+                );
+
+                const instancesUsingField = instances.filter(inst => {
+                    const val = inst.fieldValues[field.id];
+                    if (val === null || val === undefined || val === '') return false;
+                    if (Array.isArray(val) && val.length === 0) return false;
+                    return true;
+                });
+
+                // Warn if changing filter will break existing connections
+                if (instancesUsingField.length > 0 && oldFilter !== newFilter) {
+                    const message = 
+                        `⚠️ Warning: Type Filter Change\n\n` +
+                        `Changing "${field.name}" filter from "${oldFilter || '(none)'}" to "${newFilter}" ` +
+                        `may break ${instancesUsingField.length} existing instance(s).\n\n` +
+                        `Instances with incompatible references will show validation errors.\n\n` +
+                        `Continue?`;
+
+                    if (!confirm(message)) {
+                        filterSel.value = oldFilter || ''; // Cancel - revert dropdown
+                        return;
+                    }
+                }
+
                 pushUndo();
-                field.blueprintTypeFilter = filterSel.value;
+                field.blueprintTypeFilter = newFilter;
                 save();
                 renderAll();
             };
@@ -4308,7 +4689,8 @@
             nameInput.onblur = () => {
                 clearTimeout(saveTimeout);  // Cancel debounce
                 save();  // Immediate save
-                // Don't call renderAll() - name already updated in DOM
+                invalidateBlueprintMap();  // Blueprint name changed
+                renderAll();  // Update library and hierarchy
             };
 
             wrap.appendChild(nameLabel);
@@ -4321,6 +4703,18 @@
             const typeSelect = document.createElement('select');
             typeSelect.classList.add('valueInputDark');
             typeSelect.disabled = isRootBlueprintId(blueprint.id);
+
+            // Visual indicator if instances exist
+            const instances = Object.values(state.instances).filter(inst =>
+                inst.templateId === blueprint.id
+            );
+            if (instances.length > 0) {
+                typeSelect.style.setProperty('border-style', 'dashed', 'important');
+                typeSelect.style.setProperty('border-color', 'rgba(168, 85, 247, 0.4)', 'important');
+                typeSelect.style.setProperty('border-width', '1px', 'important');
+                typeSelect.style.setProperty('background', 'rgba(168, 85, 247, 0.02)', 'important');
+                typeSelect.title = `⚠️ Type locked: ${instances.length} instance(s) exist`;
+            }
 
             // Gather existing types (excluding Root)
             const existingTypes = Array.from(new Set(
@@ -4355,6 +4749,29 @@
 
             // Handle selection change
             typeSelect.onchange = () => {
+                // Check if instances exist
+                const instances = Object.values(state.instances).filter(inst =>
+                    inst.templateId === blueprint.id
+                );
+
+                if (instances.length > 0) {
+                    const instanceList = instances.slice(0, 5).map(inst => {
+                        const label = getInstanceLabel(inst.id);
+                        return `  • ${label} (${inst.id.slice(0, 8)})`;
+                    }).join('\n');
+
+                    const more = instances.length > 5 ? `\n  ... and ${instances.length - 5} more` : '';
+
+                    alert(
+                        `❌ Cannot change blueprint type\n\n` +
+                        `${instances.length} instance(s) exist:\n\n${instanceList}${more}\n\n` +
+                        `Delete all instances first, then change the type.`
+                    );
+
+                    typeSelect.value = blueprint.type; // Revert dropdown
+                    return;
+                }
+
                 if (typeSelect.value === '__new__') {
                     const newType = prompt('Enter new type name:');
                     if (newType && newType.trim()) {
@@ -4368,6 +4785,7 @@
                 } else {
                     pushUndo();
                     blueprint.type = typeSelect.value;
+                    invalidateBlueprintMap();
                     save();
                     renderAll();
                 }
@@ -4571,6 +4989,49 @@
             };
 
             staticSection.appendChild(defaultsContainer);
+            // ============================================================================
+            // GENERATOR TOGGLE
+            // ============================================================================
+            const generatorSection = document.createElement('div');
+            generatorSection.style.marginTop = '12px';
+            generatorSection.style.padding = '12px';
+            generatorSection.style.border = '1px solid var(--border)';
+            generatorSection.style.borderRadius = '6px';
+            generatorSection.style.backgroundColor = 'rgba(77,163,255,0.05)';
+
+            const generatorHeader = document.createElement('div');
+            generatorHeader.style.display = 'flex';
+            generatorHeader.style.alignItems = 'center';
+            generatorHeader.style.gap = '8px';
+
+            const generatorToggle = document.createElement('input');
+            generatorToggle.type = 'checkbox';
+            generatorToggle.id = 'generatorToggle';
+            generatorToggle.checked = !!blueprint.isGenerator;
+            generatorToggle.style.cursor = 'pointer';
+
+            const generatorLabel = document.createElement('label');
+            generatorLabel.htmlFor = 'generatorToggle';
+            generatorLabel.textContent = 'Blueprint Generator';
+            generatorLabel.style.cursor = 'pointer';
+            generatorLabel.style.fontWeight = '600';
+            generatorLabel.title = 'This blueprint generates other blueprints';
+
+            generatorToggle.onchange = () => {
+                pushUndo();
+                blueprint.isGenerator = generatorToggle.checked;
+                save();
+            };
+
+            generatorHeader.appendChild(generatorToggle);
+            generatorHeader.appendChild(generatorLabel);
+            generatorSection.appendChild(generatorHeader);
+            wrap.appendChild(generatorSection);
+
+            // ============================================================================
+            // END GENERATOR SECTION
+            // ============================================================================
+
             wrap.appendChild(staticSection);
 
             // ============================================================================
@@ -5227,6 +5688,21 @@
                 headerActions.appendChild(rmBtn);
             }
 
+            // GENERATE BLUEPRINT BUTTON (only for Blueprint Generator instances)
+            if (blueprint && blueprint.isGenerator) {
+                const genBtn = document.createElement('button');
+                genBtn.textContent = '⚡ Generate';
+                genBtn.className = 'btn primary small';
+                genBtn.title = 'Create a new blueprint from this template';
+                genBtn.style.marginLeft = '4px';
+
+                genBtn.onclick = () => {
+                    generateBlueprintFromTemplate(inst.id);
+                };
+
+                headerActions.appendChild(genBtn);
+            }
+
             header.appendChild(headerLeft);
             header.appendChild(headerActions);
             card.appendChild(header);
@@ -5432,7 +5908,7 @@
                             resizeContainer.style.position = 'relative';
 
                             // Get stored height or default to 200
-                            let currentHeight = textFieldHeights[fieldKey] || 200;
+                            let currentHeight = textFieldHeights[fieldKey] || 70;
                             let currentWidth = textFieldWidths[fieldKey] || null;
                             let isResizing = false;
 
@@ -5590,12 +6066,19 @@
 
                                 const startX = e.clientX;
                                 const startWidth = currentWidth || resizeContainer.offsetWidth;
+                                
+                                // Get center panel's actual current width
+                                const centerPane = document.querySelector('.pane.center');
+                                const panelWidth = centerPane ? centerPane.offsetWidth : 360;
+                                const minFieldWidth = Math.max(200, panelWidth - 200); // Panel width minus padding/margins
+                                
                                 document.body.style.cursor = 'ew-resize';
 
                                 const onMouseMove = (e) => {
                                     if (!isResizing) return;
                                     const deltaX = e.clientX - startX;
-                                    const newWidth = Math.max(200, Math.min(window.innerWidth * 0.9, startWidth + deltaX));
+                                    
+                                    const newWidth = Math.max(minFieldWidth, startWidth + deltaX);
                                     currentWidth = newWidth;
 
                                     const content = resizeContainer.firstChild;
@@ -5635,6 +6118,12 @@
                                 const startY = e.clientY;
                                 const startWidth = currentWidth || resizeContainer.offsetWidth;
                                 const startHeight = currentHeight;
+                                
+                                // Get center panel's actual current width
+                                const centerPane = document.querySelector('.pane.center');
+                                const panelWidth = centerPane ? centerPane.offsetWidth : 360;
+                                const minFieldWidth = Math.max(200, panelWidth - 200);
+                                
                                 document.body.style.cursor = 'se-resize';
 
                                 const onMouseMove = (e) => {
@@ -5643,7 +6132,7 @@
                                     const deltaY = e.clientY - startY;
 
                                     const newHeight = Math.max(60, Math.min(window.innerHeight * 0.8, startHeight + deltaY));
-                                    const newWidth = Math.max(200, Math.min(window.innerWidth * 0.9, startWidth + deltaX));
+                                    const newWidth = Math.max(minFieldWidth, startWidth + deltaX);
 
                                     currentHeight = newHeight;
                                     currentWidth = newWidth;
@@ -5679,10 +6168,10 @@
                             toggleBtn.style.cssText = 'margin-bottom: 4px; padding: 2px 6px; font-size: 11px; opacity: 0.6;';
 
                             if (showPreview) {
-                                toggleBtn.innerHTML = '✏️ Edit';
+                                toggleBtn.innerHTML = '✏️ Edit ↓';
                                 toggleBtn.title = 'Switch to editor';
                             } else {
-                                toggleBtn.innerHTML = '📄 Preview';
+                                toggleBtn.innerHTML = '📄 Preview ↓';
                                 toggleBtn.title = 'Show formatted preview';
                                 // Show toggle even for empty/non-markdown fields
                                 // User might want to preview as they type
@@ -5790,7 +6279,7 @@
                             chip.style.display = 'flex';
                             chip.style.alignItems = 'center';
 
-                            const refStatus = getReferenceStatus(refId);
+                            const refStatus = getReferenceStatus(refId, parentInst, f);
                             if (refStatus.cssClass) chip.classList.add(refStatus.cssClass);
 
                             const twisty = createReferenceTwisty(refId, refStatus, inst, f);
@@ -5877,7 +6366,7 @@
                             addBtn.textContent = '🔗 Add Reference';
                             addBtn.onclick = () => {
                                 // HARDENING: Pass current instance to exclude self and descendants
-                                showInstancePicker(f.blueprintTypeFilter, (selectedId) => {
+                                showInstancePicker(f.allowedTemplateIds, (selectedId) => {
                                     pushUndo();
                                     if (!ids.includes(selectedId)) {
                                         ids.push(selectedId);
@@ -5932,7 +6421,7 @@
 
                             const chipIndex = ids.indexOf(refId);
 
-                            const refStatus = getReferenceStatus(refId);
+                            const refStatus = getReferenceStatus(refId, parentInst, f);
                             if (refStatus.cssClass) chip.classList.add(refStatus.cssClass);
 
                             const twisty = createReferenceTwisty(refId, refStatus, inst, f);
@@ -6597,7 +7086,7 @@
 
         function initResizablePanels() {
             const STORAGE_KEY_WIDTHS = 'DharmaForge_panelWidths';
-            
+
             const leftPane = document.querySelector('.pane.left');
             const rightPane = document.querySelector('.pane.right');
             const dividerLeft = document.getElementById('divider-left');
@@ -6607,7 +7096,7 @@
             // Load saved widths or use defaults
             let leftWidth = 410;
             let rightWidth = 220;
-            
+
             try {
                 const saved = localStorage.getItem(STORAGE_KEY_WIDTHS);
                 if (saved) {
