@@ -994,17 +994,18 @@
             color: var(--danger);
         }
 
-        .entityref-chip {
+.entityref-chip {
             display: inline-flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
             background: rgba(77, 163, 255, 0.1);
             border: 1px solid rgba(77, 163, 255, 0.3);
-            border-radius: 4px;
-            padding: 4px 8px;
-            margin: 2px;
-            font-size: 11px;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 4px 2px;
+            font-size: 13px;
             color: var(--accent);
+            min-height: 32px;
         }
 
         .entityref-chip.broken {
@@ -1515,29 +1516,29 @@
 
                 // Map type string to field kind
                 switch (spec.type) {
-                    case 'txt':
+                    case '[txt]':
                         fieldDef.fieldKind = FIELD_KIND.PRIMITIVE;
                         fieldDef.primitiveType = PRIMITIVE_TYPE.TEXT;
                         break;
-                    case 'num':
+                    case '[num]':
                         fieldDef.fieldKind = FIELD_KIND.PRIMITIVE;
                         fieldDef.primitiveType = PRIMITIVE_TYPE.NUMBER;
                         break;
-                    case 'ref':
+                    case '[ref]':
                         fieldDef.fieldKind = FIELD_KIND.INSTANCE_REFERENCE;
                         fieldDef.allowedTemplateIds = parseAllowedTypes(spec.allowedTypes);
                         fieldDef.blueprintTypeFilter = inferBlueprintType(spec.allowedTypes);
                         break;
-                    case 'ref_list':
+                    case '[ref_list]':
                         fieldDef.fieldKind = FIELD_KIND.INSTANCE_REFERENCE_LIST;
                         fieldDef.allowedTemplateIds = parseAllowedTypes(spec.allowedTypes);
                         break;
-                    case 'inst':
+                    case '[inst]':
                         fieldDef.fieldKind = FIELD_KIND.INSTANTIATOR;
                         fieldDef.allowedTemplateIds = parseAllowedTypes(spec.allowedTypes);
                         fieldDef.blueprintTypeFilter = inferBlueprintType(spec.allowedTypes);
                         break;
-                    case 'inst_list':
+                    case '[inst_list]':
                         fieldDef.fieldKind = FIELD_KIND.INSTANTIATOR_LIST;
                         fieldDef.allowedTemplateIds = parseAllowedTypes(spec.allowedTypes);
                         break;
@@ -5012,7 +5013,7 @@
 
             const generatorLabel = document.createElement('label');
             generatorLabel.htmlFor = 'generatorToggle';
-            generatorLabel.textContent = 'Blueprint Generator';
+            generatorLabel.textContent = 'Blueprint Generator - Field-type callout codes: [txt], [num], [inst], [inst_list], [ref], [ref_list] - [field_name], [field_type], [allowed_types]';
             generatorLabel.style.cursor = 'pointer';
             generatorLabel.style.fontWeight = '600';
             generatorLabel.title = 'This blueprint generates other blueprints';
@@ -6629,6 +6630,43 @@
                             ghost.textContent = '👻 Static blueprint default';
                             ghost.title = 'Static children are defined in blueprint, not runtime';
                             control.appendChild(ghost);
+                            continue;
+                        }
+
+                        // Check if child's blueprint exists
+                        const childBp = findBlueprintById(item.child.templateId);
+                        if (!childBp) {
+                            // Blueprint deleted - show error card with clear button
+                            const errorCard = document.createElement('div');
+                            errorCard.className = 'instance-card';
+                            errorCard.style.borderColor = 'var(--danger)';
+                            errorCard.style.background = 'rgba(255, 107, 107, 0.08)';
+                            errorCard.style.padding = '10px';
+                            errorCard.style.display = 'flex';
+                            errorCard.style.alignItems = 'center';
+                            errorCard.style.justifyContent = 'space-between';
+
+                            const errorMsg = document.createElement('span');
+                            errorMsg.style.color = 'var(--danger)';
+                            errorMsg.textContent = `🔴 Instance ${item.child.id.slice(0, 8)} (blueprint deleted)`;
+                            errorCard.appendChild(errorMsg);
+
+                            // Clear button
+                            const clearBtn = document.createElement('button');
+                            clearBtn.className = 'btn small danger';
+                            clearBtn.textContent = '× Remove';
+                            clearBtn.title = 'Remove instance with deleted blueprint';
+                            clearBtn.onclick = () => {
+                                if (confirm(`Delete instance ${item.child.id.slice(0, 8)}?\n\nThis instance's blueprint no longer exists.`)) {
+                                    pushUndo();
+                                    deleteInstance(item.child.id);
+                                    save();
+                                    renderAll();
+                                }
+                            };
+                            errorCard.appendChild(clearBtn);
+
+                            control.appendChild(errorCard);
                             continue;
                         }
 
