@@ -83,8 +83,8 @@
         main {
             flex: 1;
             display: flex;
-            gap: 12px;
-            padding: 12px;
+            gap: 4px;
+            padding: 8px;
             box-sizing: border-box;
             min-height: 0
         }
@@ -101,10 +101,10 @@
         }
 
         .left {
-            width: 410px;
-            flex: 0 0 410px;
-            min-width: 300px;
-            max-width: 430px
+            width: var(--left-width, 410px);
+            flex: 0 0 var(--left-width, 410px);
+            min-width: 200px;
+            max-width: 800px
         }
 
         .center {
@@ -113,9 +113,10 @@
         }
 
         .right {
-            width: 220px;
-            flex: 0 0 220px;
-            min-width: 200px
+            width: var(--right-width, 220px);
+            flex: 0 0 var(--right-width, 220px);
+            min-width: 180px;
+            max-width: 600px
         }
 
         .pane .title {
@@ -312,10 +313,10 @@
             background: var(--panel-2);
             color: var(--text);
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-            padding: 8px;
+            padding: 6px;
             border-radius: 6px;
             border: 1px solid var(--border);
-            line-height: 1.5;
+            line-height: 1.3;
             white-space: pre-wrap;
             word-wrap: break-word;
             font-size: 13px;
@@ -324,32 +325,9 @@
             overflow-x: hidden;
         }
 
-        .markdown-preview:hover {
-            background: rgba(255, 255, 255, 0.03);
-            border-color: rgba(255, 255, 255, 0.12);
-        }
-
-        /* Collapsed state - truncated with fade */
-        .markdown-preview.collapsed {
-            max-height: 60px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .markdown-preview.collapsed::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 30px;
-            background: linear-gradient(to bottom, transparent, var(--panel-2));
-            pointer-events: none;
-        }
-
         /* Markdown content styling */
         .markdown-preview p {
-            margin: 0 0 0.8em 0;
+            margin: 0 0 0.25em 0;
         }
 
         .markdown-preview p:last-child {
@@ -367,7 +345,7 @@
 
         .markdown-preview code {
             background: rgba(255, 255, 255, 0.1);
-            padding: 2px 5px;
+            padding: 2px 4px;
             border-radius: 3px;
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
@@ -375,10 +353,10 @@
 
         .markdown-preview pre {
             background: rgba(0, 0, 0, 0.3);
-            padding: 8px;
+            padding: 6px;
             border-radius: 4px;
             overflow-x: auto;
-            margin: 0.5em 0;
+            margin: 0.2em 0;
         }
 
         .markdown-preview pre code {
@@ -397,20 +375,21 @@
 
         .markdown-preview ul,
         .markdown-preview ol {
-            margin: 0.5em 0;
-            padding-left: 1.8em;
+            margin: 0.2em 0;
+            padding-left: 1.2em;
         }
 
         .markdown-preview li {
-            margin: 0.3em 0;
+            margin: 0.1em 0;
         }
 
         .markdown-preview h1,
         .markdown-preview h2,
         .markdown-preview h3 {
-            margin: 0.8em 0 0.4em 0;
+            margin: 0.15em 0 0.1em 0;
             color: #fff;
             font-weight: 600;
+            line-height: 1.1;
         }
 
         .markdown-preview h1 {
@@ -418,17 +397,17 @@
         }
 
         .markdown-preview h2 {
-            font-size: 1.4em;
+            font-size: 1.3em;
         }
 
         .markdown-preview h3 {
-            font-size: 1.2em;
+            font-size: 1.15em;
         }
 
         .markdown-preview blockquote {
             border-left: 3px solid var(--accent);
-            padding-left: 12px;
-            margin: 0.5em 0;
+            padding-left: 10px;
+            margin: 0.2em 0;
             color: var(--muted);
         }
 
@@ -1246,6 +1225,42 @@
             box-shadow: 0 0 6px rgba(255, 255, 255, 0.08);
             transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
         }
+        /* === RESIZABLE DIVIDERS === */
+        .divider {
+            width: 4px;
+            background: transparent;
+            cursor: col-resize;
+            position: relative;
+            flex-shrink: 0;
+            transition: background 0.15s ease;
+        }
+
+        .divider:hover {
+            background: rgba(77, 163, 255, 0.2);
+        }
+
+        .divider:active {
+            background: rgba(77, 163, 255, 0.4);
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -2px;
+            right: -2px;
+            bottom: 0;
+            cursor: col-resize;
+        }
+
+        body.resizing {
+            cursor: col-resize;
+            user-select: none;
+        }
+
+        body.resizing * {
+            cursor: col-resize !important;
+        }
     </style>
 </head>
 
@@ -1302,6 +1317,9 @@
                 </div>
             </div>
 
+            <!-- DIVIDER -->
+            <div class="divider" id="divider-left"></div>
+
             <!-- CENTER PANE -->
             <div class="pane center">
                 <div class="title">Workspace</div>
@@ -1310,6 +1328,9 @@
                 <div class="editor" id="editor" data-scroll-key="editor">
                 </div>
             </div>
+
+            <!-- DIVIDER -->
+            <div class="divider" id="divider-right"></div>
 
             <!-- RIGHT PANE -->
             <div class="pane right">
@@ -1510,6 +1531,8 @@
         let selected = { kind: 'instance', id: null };
         let collapsed = {};
         let expandedTextFields = {};
+        let textFieldHeights = {};  // Store custom heights per field
+        let textFieldWidths = {};   // Store custom widths per field
         let editorCollapsed = {};
         let verboseMode = false;
 
@@ -5408,8 +5431,9 @@
                             resizeContainer.className = 'resize-container';
                             resizeContainer.style.position = 'relative';
 
-                            let currentHeight = 200;
-                            let currentWidth = null;
+                            // Get stored height or default to 200
+                            let currentHeight = textFieldHeights[fieldKey] || 200;
+                            let currentWidth = textFieldWidths[fieldKey] || null;
                             let isResizing = false;
 
                             if (showPreview) {
@@ -5488,6 +5512,7 @@
                                 const onMouseUp = () => {
                                     isResizing = false;
                                     document.body.style.cursor = '';
+                                    textFieldHeights[fieldKey] = currentHeight;  // Save height
                                     document.removeEventListener('mousemove', onMouseMove);
                                     document.removeEventListener('mouseup', onMouseUp);
                                 };
@@ -5533,6 +5558,7 @@
                                 const onMouseUp = () => {
                                     isResizing = false;
                                     document.body.style.cursor = '';
+                                    textFieldHeights[fieldKey] = currentHeight;  // Save height
                                     document.removeEventListener('mousemove', onMouseMove);
                                     document.removeEventListener('mouseup', onMouseUp);
                                 };
@@ -5580,6 +5606,7 @@
                                 const onMouseUp = () => {
                                     isResizing = false;
                                     document.body.style.cursor = '';
+                                    textFieldWidths[fieldKey] = currentWidth;  // Save width
                                     document.removeEventListener('mousemove', onMouseMove);
                                     document.removeEventListener('mouseup', onMouseUp);
                                 };
@@ -5630,6 +5657,8 @@
                                 const onMouseUp = () => {
                                     isResizing = false;
                                     document.body.style.cursor = '';
+                                    textFieldHeights[fieldKey] = currentHeight;  // Save height
+                                    textFieldWidths[fieldKey] = currentWidth;    // Save width
                                     document.removeEventListener('mousemove', onMouseMove);
                                     document.removeEventListener('mouseup', onMouseUp);
                                 };
@@ -6565,11 +6594,110 @@
         }
 
         // ============================================================================
+        // RESIZABLE PANELS
+        // ============================================================================
+
+        function initResizablePanels() {
+            const STORAGE_KEY_WIDTHS = 'DharmaForge_panelWidths';
+            
+            const leftPane = document.querySelector('.pane.left');
+            const rightPane = document.querySelector('.pane.right');
+            const dividerLeft = document.getElementById('divider-left');
+            const dividerRight = document.getElementById('divider-right');
+            const mainContainer = document.querySelector('main');
+
+            // Load saved widths or use defaults
+            let leftWidth = 410;
+            let rightWidth = 220;
+            
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY_WIDTHS);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    leftWidth = parsed.left || leftWidth;
+                    rightWidth = parsed.right || rightWidth;
+                }
+            } catch (e) {
+                console.warn('Could not load panel widths:', e);
+            }
+
+            // Apply loaded widths
+            mainContainer.style.setProperty('--left-width', leftWidth + 'px');
+            mainContainer.style.setProperty('--right-width', rightWidth + 'px');
+
+            // Save widths to localStorage
+            function saveWidths() {
+                try {
+                    localStorage.setItem(STORAGE_KEY_WIDTHS, JSON.stringify({
+                        left: leftWidth,
+                        right: rightWidth
+                    }));
+                } catch (e) {
+                    console.warn('Could not save panel widths:', e);
+                }
+            }
+
+            // Left divider (resizes left pane)
+            let isDraggingLeft = false;
+            let startXLeft = 0;
+            let startWidthLeft = 0;
+
+            dividerLeft.addEventListener('mousedown', (e) => {
+                isDraggingLeft = true;
+                startXLeft = e.clientX;
+                startWidthLeft = leftWidth;
+                document.body.classList.add('resizing');
+                e.preventDefault();
+            });
+
+            // Right divider (resizes right pane)
+            let isDraggingRight = false;
+            let startXRight = 0;
+            let startWidthRight = 0;
+
+            dividerRight.addEventListener('mousedown', (e) => {
+                isDraggingRight = true;
+                startXRight = e.clientX;
+                startWidthRight = rightWidth;
+                document.body.classList.add('resizing');
+                e.preventDefault();
+            });
+
+            // Global mouse move handler
+            document.addEventListener('mousemove', (e) => {
+                if (isDraggingLeft) {
+                    const delta = e.clientX - startXLeft;
+                    const newWidth = Math.max(200, Math.min(800, startWidthLeft + delta));
+                    leftWidth = newWidth;
+                    mainContainer.style.setProperty('--left-width', newWidth + 'px');
+                } else if (isDraggingRight) {
+                    const delta = startXRight - e.clientX; // Reversed for right pane
+                    const newWidth = Math.max(180, Math.min(600, startWidthRight + delta));
+                    rightWidth = newWidth;
+                    mainContainer.style.setProperty('--right-width', newWidth + 'px');
+                }
+            });
+
+            // Global mouse up handler
+            document.addEventListener('mouseup', () => {
+                if (isDraggingLeft || isDraggingRight) {
+                    document.body.classList.remove('resizing');
+                    saveWidths();
+                    isDraggingLeft = false;
+                    isDraggingRight = false;
+                }
+            });
+        }
+
+        // ============================================================================
         // BOOT (HARDENED)
         // ============================================================================
 
         (function boot() {
             console.log('DharmaForge v1.0 - Booting...');
+
+            // Initialize resizable panels
+            initResizablePanels();
 
             const ok = load();
             if (!ok) {
