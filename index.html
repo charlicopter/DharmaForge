@@ -2,6 +2,9 @@
 <html lang="en">
 
 <head>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@15/lib/marked.umd.js"></script>
+
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>DharmaForge — v1.0 — By Charles Cushing</title>
@@ -228,7 +231,7 @@
         input[type=text],
         input[type=number],
         select,
-        textarea {
+        /*textarea {
             background: #071018;
             border: 1px solid var(--border);
             padding: 4px 6px;
@@ -242,18 +245,293 @@
             font-size: 13px;
             height: auto;
             margin: 0;
-        }
+        }*/
 
         select option {
             background: #071018;
             color: var(--text)
         }
 
-        textarea {
-            resize: vertical;
-            min-height: 60px;
-            font-family: inherit
-        }
+        /* Textarea editor */
+/* Textarea editor - matches DF aesthetic */
+textarea {
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    line-height: 1.4;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 13px;
+    resize: none;  /* Disable default resize */
+    transition: all 0.2s ease;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.1);
+}
+
+/* Collapsed state - compact like instance card */
+textarea.collapsed {
+    height: 60px;
+    overflow: hidden;
+}
+
+/* Expanded state - large working area */
+textarea.expanded {
+    min-height: 200px;
+    max-height: 70vh;  /* Can grow to 70% of viewport */
+    overflow-y: auto;
+}
+
+/* ============================================================================
+   MARKDOWN PREVIEW
+   ============================================================================ */
+
+.markdown-preview {
+    background: var(--panel-2);
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.markdown-preview:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Collapsed state - truncated with fade */
+.markdown-preview.collapsed {
+    max-height: 60px;
+    overflow: hidden;
+    position: relative;
+}
+
+.markdown-preview.collapsed::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: linear-gradient(to bottom, transparent, var(--panel-2));
+    pointer-events: none;
+}
+
+/* Markdown content styling */
+.markdown-preview p {
+    margin: 0 0 0.8em 0;
+}
+
+.markdown-preview p:last-child {
+    margin-bottom: 0;
+}
+
+.markdown-preview strong {
+    font-weight: 600;
+    color: #fff;
+}
+
+.markdown-preview em {
+    font-style: italic;
+}
+
+.markdown-preview code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.markdown-preview pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0.5em 0;
+}
+
+.markdown-preview pre code {
+    background: none;
+    padding: 0;
+}
+
+.markdown-preview a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.markdown-preview a:hover {
+    text-decoration: underline;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+    margin: 0.5em 0;
+    padding-left: 1.8em;
+}
+
+.markdown-preview li {
+    margin: 0.3em 0;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+    margin: 0.8em 0 0.4em 0;
+    color: #fff;
+    font-weight: 600;
+}
+
+.markdown-preview h1 { font-size: 1.6em; }
+.markdown-preview h2 { font-size: 1.4em; }
+.markdown-preview h3 { font-size: 1.2em; }
+
+.markdown-preview blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    margin: 0.5em 0;
+    color: var(--muted);
+}
+
+/* ============================================================================
+   EXPAND/COLLAPSE BUTTON
+   ============================================================================ */
+
+.expand-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 4px 8px;
+    margin-top: 4px;
+    cursor: pointer;
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.expand-toggle:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ============================================================================
+   RESIZE HANDLES
+   ============================================================================ */
+
+.resize-container {
+    position: relative;
+    width: 100%;
+}
+
+.resize-handle {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.04);
+    transition: background 0.2s;
+    z-index: 5;
+}
+
+.resize-handle:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Top handle */
+.resize-handle.top {
+    width: 100%;
+    height: 4px;
+    top: 0;
+    left: 0;
+    cursor: ns-resize;
+    border-radius: 4px 4px 0 0;
+}
+
+.resize-handle.top::before {
+    content: '⋮';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+/* Bottom handle */
+.resize-handle.bottom {
+    width: 100%;
+    height: 4px;
+    bottom: 0;
+    left: 0;
+    cursor: ns-resize;
+    border-radius: 0 0 4px 4px;
+}
+
+.resize-handle.bottom::before {
+    content: '⋮';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+/* Right handle */
+.resize-handle.right {
+    width: 4px;
+    height: calc(100% - 20px);
+    top: 10px;
+    right: 1px;
+    cursor: ew-resize;
+    border-radius: 2px;
+}
+
+.resize-handle.right::before {
+    content: '';
+}
+
+/* Corner handle */
+.resize-handle.corner.bottom-right {
+    width: 8px;
+    height: 8px;
+    bottom: 0;
+    right: 0;
+    cursor: se-resize;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 0 0 4px 0;
+    z-index: 10;
+}
+
+.resize-handle.corner.bottom-right:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Textarea */
+.resize-container textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 
         .valueInputDark {
             background: #061018 !important;
@@ -1003,6 +1281,8 @@
     <input id="fileInput" type="file" style="display:none" accept="application/json" />
 
     <script>
+
+
         'use strict';
 
         // Generic top-bar link configuration
@@ -1177,6 +1457,7 @@
         let navHistoryIndex = -1;
         let selected = { kind: 'instance', id: null };
         let collapsed = {};
+        let expandedTextFields = {};
         let editorCollapsed = {};
         let verboseMode = false;
 
@@ -1207,6 +1488,57 @@
             const reachable = collectReachableInstances();
             return !reachable.has(instanceId);
         }
+
+        function renderMarkdown(text) {
+            if (!text || text.trim() === '') return '';
+
+            try {
+                // Configure marked for safe rendering
+                marked.setOptions({
+                    breaks: true,        // Convert \n to <br>
+                    gfm: true,          // GitHub Flavored Markdown
+                    headerIds: false,   // Don't generate header IDs
+                    mangle: false       // Don't escape email addresses
+                });
+
+                return marked.parse(text);
+            } catch (error) {
+                console.error('Markdown parse error:', error);
+                return text; // Fallback to plain text
+            }
+        }
+
+        function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+
+        /**
+         * Check if text contains Markdown formatting.
+         * Returns true if text has markdown syntax.
+         */
+        function hasMarkdownSyntax(text) {
+            if (!text) return false;
+
+            // Multi-line content is always markdown-worthy
+            if (text.includes('\n')) return true;
+
+            // Check for common markdown patterns
+            const markdownPatterns = [
+                /\*\*.*?\*\*/,          // **bold**
+                /__.*?__/,              // __bold__
+                /\*.*?\*/,              // *italic*
+                /_.*?_/,                // _italic_
+                /\[.*?\]\(.*?\)/,       // [link](url)
+                /`.*?`/,                // `code`
+                /^#+\s/m,               // # headers
+                /^[-*+]\s/m,            // - lists
+                /^\d+\.\s/m             // 1. numbered lists
+            ];
+
+            return markdownPatterns.some(pattern => pattern.test(text));
+        }
+
 
         // HARDENING: Collect all reachable instance IDs from containment graph
         function collectReachableInstances() {
@@ -1948,13 +2280,13 @@
 
         // HARDENING: Register instance with validation
         function registerInstance(inst) {
-    if (!inst || !inst.id) {
-        console.error('Cannot register instance without ID');
-        return;
-    }
-    state.instances[inst.id] = inst;
-    invalidateReachabilityCache();  // ADD THIS LINE
-}
+            if (!inst || !inst.id) {
+                console.error('Cannot register instance without ID');
+                return;
+            }
+            state.instances[inst.id] = inst;
+            invalidateReachabilityCache();  // ADD THIS LINE
+        }
 
         // ============================================================================
         // INSTANCE CREATION
@@ -4938,9 +5270,14 @@
                         defaultDisplay.style.marginTop = '0'
 
                         const valueText = document.createElement('div');
-                        valueText.textContent = String(defaultValue);
                         valueText.className = 'muted';
                         valueText.style.flex = '1';
+
+                        if (hasMarkdownSyntax(String(defaultValue))) {
+                            valueText.innerHTML = renderMarkdown(String(defaultValue));
+                        } else {
+                            valueText.textContent = String(defaultValue);
+                        }
 
                         const overrideBtn = document.createElement('button');
                         overrideBtn.className = 'btn small';
@@ -4979,8 +5316,6 @@
 
                     } else {
                         // STATE: Normal input (no blueprint default, or overridden)
-                        const inp = document.createElement('input');
-                        inp.type = f.primitiveType === PRIMITIVE_TYPE.NUMBER ? 'number' : 'text';
 
                         // Get value from instance or use default
                         let currentValue;
@@ -4989,25 +5324,337 @@
                         } else {
                             currentValue = f.primitiveType === PRIMITIVE_TYPE.NUMBER ? 0 : '';
                         }
-                        inp.value = currentValue;
 
-                        inp.onfocus = () => pushUndo();
-                        inp.oninput = () => {
-                            if (f.primitiveType === PRIMITIVE_TYPE.NUMBER) {
+                        // Create unique key for tracking expansion state
+                        const fieldKey = `${inst.id}-${f.id}`;
+                        const isExpanded = expandedTextFields[fieldKey] || false;
+
+                        // Check if this is text with markdown
+                        const isTextWithMarkdown = f.primitiveType === PRIMITIVE_TYPE.TEXT && hasMarkdownSyntax(currentValue);
+
+                        if (isTextWithMarkdown && !isExpanded) {
+                            // MARKDOWN PREVIEW MODE
+                            const previewContainer = document.createElement('div');
+
+                            const previewDiv = document.createElement('div');
+                            previewDiv.className = 'markdown-preview collapsed';
+                            previewDiv.innerHTML = renderMarkdown(currentValue);
+
+                            // Click to edit
+                            previewDiv.onclick = () => {
+                                expandedTextFields[fieldKey] = true;
+                                renderAll();
+                            };
+
+                            previewContainer.appendChild(previewDiv);
+
+                            // Expand/Edit button
+                            const expandBtn = document.createElement('button');
+                            expandBtn.className = 'expand-toggle';
+                            expandBtn.innerHTML = '▼ Expand & Edit';
+                            expandBtn.onclick = () => {
+                                expandedTextFields[fieldKey] = true;
+                                renderAll();
+                            };
+
+                            previewContainer.appendChild(expandBtn);
+                            control.appendChild(previewContainer);
+
+                        } else if (f.primitiveType === PRIMITIVE_TYPE.TEXT) {
+    const textContainer = document.createElement('div');
+    const fieldKey = `${inst.id}-${f.id}`;
+    
+    // Track edit mode state
+    if (window.textFieldEditMode === undefined) {
+        window.textFieldEditMode = {};
+    }
+    const isEditMode = window.textFieldEditMode[fieldKey] !== false;  // Default to edit
+    
+    // Get current value - ensure never undefined
+    let currentValue = inst.fieldValues[f.id];
+    if (currentValue === undefined || currentValue === null) {
+        currentValue = '';
+    }
+    
+    // Check if we have markdown
+    const hasMarkdown = hasMarkdownSyntax(currentValue);
+    const isEmpty = !currentValue || currentValue.trim() === '';
+    
+    // Show preview only if: has markdown AND not in edit mode AND not empty
+    const showPreview = hasMarkdown && !isEditMode && !isEmpty;
+    
+    // Create resize container (ALWAYS)
+    const resizeContainer = document.createElement('div');
+    resizeContainer.className = 'resize-container';
+    resizeContainer.style.position = 'relative';
+    
+    let currentHeight = 200;
+    let currentWidth = null;
+    let isResizing = false;
+    
+    if (showPreview) {
+        // ========== PREVIEW MODE ==========
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'markdown-preview';
+        previewDiv.innerHTML = renderMarkdown(currentValue);
+        previewDiv.style.height = currentHeight + 'px';
+        previewDiv.style.overflowY = 'auto';
+        previewDiv.style.cursor = 'default';
+        if (currentWidth) {
+            previewDiv.style.width = currentWidth + 'px';
+        }
+        
+        resizeContainer.appendChild(previewDiv);
+        
+    } else {
+        // ========== EDITOR MODE ==========
+        const textarea = document.createElement('textarea');
+        textarea.value = currentValue;
+        textarea.placeholder = 'Type here... (Markdown: **bold** _italic_ [link](url))';
+        textarea.style.height = currentHeight + 'px';
+        if (currentWidth) {
+            textarea.style.width = currentWidth + 'px';
+        }
+        
+        textarea.onfocus = () => pushUndo();
+        
+        textarea.oninput = () => {
+            inst.fieldValues[f.id] = textarea.value;
+            debouncedSave();
+        };
+        
+        textarea.onblur = () => {
+            clearTimeout(saveTimeout);
+            save();
+        };
+        
+        resizeContainer.appendChild(textarea);
+    }
+    
+    // ========== RESIZE HANDLES (ALWAYS ADDED) ==========
+    
+    // TOP HANDLE
+    const topHandle = document.createElement('div');
+    topHandle.className = 'resize-handle top';
+    
+    topHandle.onmousedown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        
+        const startY = e.clientY;
+        const startHeight = currentHeight;
+        document.body.style.cursor = 'ns-resize';
+        
+        const onMouseMove = (e) => {
+    if (!isResizing) return;
+    const deltaY = e.clientY - startY;
+    const newHeight = startHeight - deltaY;  // No clamping during drag
+    
+    // Only enforce limits, don't clamp
+    if (newHeight < 100) return;
+    if (newHeight > window.innerHeight * 0.8) return;
+    
+    currentHeight = newHeight;
+    const content = resizeContainer.firstChild;
+    content.style.height = newHeight + 'px';
+};
+        
+        const onMouseUp = () => {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+    
+    resizeContainer.appendChild(topHandle);
+    
+    // BOTTOM HANDLE
+    const bottomHandle = document.createElement('div');
+    bottomHandle.className = 'resize-handle bottom';
+    
+    bottomHandle.onmousedown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        
+        const startY = e.clientY;
+        const startHeight = currentHeight;
+        document.body.style.cursor = 'ns-resize';
+        
+        const onMouseMove = (e) => {
+    if (!isResizing) return;
+    const deltaY = e.clientY - startY;
+    const newHeight = startHeight + deltaY;  // No clamping during drag
+    
+    // Only enforce limits, don't clamp
+    if (newHeight < 100) return;
+    if (newHeight > window.innerHeight * 0.8) return;
+    
+    currentHeight = newHeight;
+    const content = resizeContainer.firstChild;
+    content.style.height = newHeight + 'px';
+};
+        
+        const onMouseUp = () => {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+    
+    resizeContainer.appendChild(bottomHandle);
+    
+    // RIGHT HANDLE
+    const rightHandle = document.createElement('div');
+    rightHandle.className = 'resize-handle right';
+    
+    rightHandle.onmousedown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        
+        const startX = e.clientX;
+        const startWidth = currentWidth || resizeContainer.offsetWidth;
+        document.body.style.cursor = 'ew-resize';
+        
+        const onMouseMove = (e) => {
+            if (!isResizing) return;
+            const deltaX = e.clientX - startX;
+            const newWidth = Math.max(200, Math.min(window.innerWidth * 0.9, startWidth + deltaX));
+            currentWidth = newWidth;
+            
+            const content = resizeContainer.firstChild;
+            content.style.width = newWidth + 'px';
+            resizeContainer.style.width = newWidth + 'px';
+        };
+        
+        const onMouseUp = () => {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+    
+    resizeContainer.appendChild(rightHandle);
+    
+    // CORNER HANDLE
+    const cornerHandle = document.createElement('div');
+    cornerHandle.className = 'resize-handle corner bottom-right';
+    
+    cornerHandle.onmousedown = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = currentWidth || resizeContainer.offsetWidth;
+        const startHeight = currentHeight;
+        document.body.style.cursor = 'se-resize';
+        
+        const onMouseMove = (e) => {
+            if (!isResizing) return;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            const newHeight = Math.max(60, Math.min(window.innerHeight * 0.8, startHeight + deltaY));
+            const newWidth = Math.max(200, Math.min(window.innerWidth * 0.9, startWidth + deltaX));
+            
+            currentHeight = newHeight;
+            currentWidth = newWidth;
+            
+            const content = resizeContainer.firstChild;
+            content.style.height = newHeight + 'px';
+            content.style.width = newWidth + 'px';
+            resizeContainer.style.width = newWidth + 'px';
+        };
+        
+        const onMouseUp = () => {
+            isResizing = false;
+            document.body.style.cursor = '';
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+    
+    resizeContainer.appendChild(cornerHandle);
+    
+    // Add to page
+    textContainer.appendChild(resizeContainer);
+    
+    // ========== TOGGLE BUTTON ==========
+    // Only show if field has content
+    if (!isEmpty) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'expand-toggle';
+        toggleBtn.style.marginTop = '4px';
+        
+        if (showPreview) {
+            // Currently in preview - show edit button
+            toggleBtn.innerHTML = '✏️ Edit';
+            toggleBtn.title = 'Switch to editor';
+        } else {
+            // Currently in editor - show preview button (only if has markdown)
+            if (hasMarkdown) {
+                toggleBtn.innerHTML = '📄 Preview';
+                toggleBtn.title = 'Show formatted preview';
+            } else {
+                // No markdown, no need for toggle button
+                toggleBtn.style.display = 'none';
+            }
+        }
+        
+        toggleBtn.onclick = () => {
+            // Toggle mode
+            window.textFieldEditMode[fieldKey] = !isEditMode;
+            save();
+            renderAll();
+        };
+        
+        textContainer.appendChild(toggleBtn);
+    }
+    
+    control.appendChild(textContainer);
+    
+} else {
+    // NUMBER INPUT MODE
+                            const inp = document.createElement('input');
+                            inp.type = 'number';
+                            inp.value = currentValue;
+
+                            inp.onfocus = () => pushUndo();
+                            inp.oninput = () => {
                                 inst.fieldValues[f.id] = inp.value === '' ? 0 : Number(inp.value);
-                            } else {
-                                inst.fieldValues[f.id] = inp.value;
-                            }
-                            save();
-                        };
-                        inp.onblur = () => {
-                            save();
-                            renderAll();
-                        };
-                        control.appendChild(inp);
+                                debouncedSave();
+                            };
+                            inp.onblur = () => {
+                                clearTimeout(saveTimeout);
+                                save();
+                            };
 
-                        // If overridden, show indicator + revert button
+                            control.appendChild(inp);
+                        }
+                        // ─────────────────────────────────────────────
+                        // POST-STATE: Overridden indicator + revert
+                        // ─────────────────────────────────────────────
                         if (isStaticBlueprint && isOverridden) {
+
                             const overrideIndicator = document.createElement('div');
                             overrideIndicator.className = 'override-indicator';
 
@@ -5017,7 +5664,8 @@
 
                             const originalText = document.createElement('span');
                             originalText.className = 'override-original';
-                            originalText.textContent = `Blueprint default: ${blueprint.staticValues[f.id]}`;
+                            originalText.textContent =
+                                `Blueprint default: ${blueprint.staticValues[f.id]}`;
 
                             const revertBtn = document.createElement('button');
                             revertBtn.className = 'btn small';
@@ -5027,7 +5675,9 @@
                                 const currentValue = inst.fieldValues[f.id];
                                 const defaultValue = blueprint.staticValues[f.id];
 
-                                if (confirm(`Replace "${currentValue}" with blueprint default "${defaultValue}"?`)) {
+                                if (confirm(
+                                    `Replace "${currentValue}" with blueprint default "${defaultValue}"?`
+                                )) {
                                     pushUndo();
                                     delete inst.fieldValues[f.id];
                                     save();
@@ -5041,6 +5691,7 @@
                             control.appendChild(overrideIndicator);
                         }
                     }
+
                 } else if (f.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
                     if (false /*isFieldStatic(blueprint, f)*/) {
                         const txt = document.createElement('div');
