@@ -188,6 +188,18 @@
             margin-left: 6px
         }
 
+        .btn.warning {
+            background: #f5c542;
+            color: #333;
+            border: 1px solid #d4a832;
+        }
+
+        .btn.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
         .field-line {
             background: transparent;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -973,6 +985,17 @@
             justify-content: flex-end;
         }
 
+        .btn-warning-disabled {
+            color: #f5c542 !important;
+            border-color: #f5c542 !important;
+            background: rgba(245, 197, 66, 0.08) !important;
+            cursor: not-allowed;
+        }
+
+        .btn-warning-disabled:hover {
+            background: rgba(245, 197, 66, 0.08) !important;
+        }
+
         .warning-banner {
             background: rgba(251, 191, 36, 0.1);
             border: 1px solid rgba(251, 191, 36, 0.3);
@@ -994,7 +1017,29 @@
             color: var(--danger);
         }
 
-.entityref-chip {
+        .validation-error {
+            background: rgba(255, 80, 80, 0.12);
+            border: 1px solid rgba(255, 80, 80, 0.35);
+            color: rgb(255, 120, 120);
+        }
+
+        .validation-error::before {
+            content: '●';
+            color: rgb(255, 80, 80);
+        }
+
+        .validation-warning {
+            background: rgba(255, 200, 0, 0.12);
+            border: 1px solid rgba(255, 200, 0, 0.35);
+            color: rgb(255, 220, 120);
+        }
+
+        .validation-warning::before {
+            content: '●';
+            color: rgb(255, 200, 0);
+        }
+
+        .entityref-chip {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -1569,6 +1614,76 @@
             renderAll();
 
             alert(`✅ Blueprint "${blueprintName}" created with ${newFields.length} fields!`);
+        }
+
+        // Helper: Create type filter dropdown with validation
+        function createTypeFilterDropdown(field, parentInst, isList = false) {
+            const sel = document.createElement('select');
+            sel.classList.add('valueInputDark');
+
+            const emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            const filterType = field.blueprintTypeFilter;
+
+            // Check filter validity
+            const validTypes = new Set(
+                state.blueprints
+                    .map(t => t.type)
+                    .filter(t => t && typeof t === 'string' && t.trim() !== '' && t !== 'Root')
+            );
+
+            const hasNoFilter = !filterType || filterType === null || filterType === '';
+            const filterOrphaned = filterType && !validTypes.has(filterType);
+
+            if (hasNoFilter) {
+                emptyOpt.textContent = '⚠️ No type selected';
+                emptyOpt.style.color = 'var(--warning)';
+                sel.disabled = true;
+                sel.style.cssText = 'border: 1px solid var(--warning) !important; background: rgba(251, 191, 36, 0.08) !important;';
+                sel.title = 'Blueprint field has no type filter - edit blueprint to fix';
+            } else if (filterOrphaned) {
+                emptyOpt.textContent = `🔴 Category "${filterType}" not found`;
+                emptyOpt.style.color = 'var(--danger)';
+                sel.disabled = true;
+                sel.style.cssText = 'border: 1px solid var(--danger) !important; background: rgba(255, 107, 107, 0.08) !important;';
+                sel.title = `Blueprint type "${filterType}" no longer exists - edit blueprint to fix`;
+            } else {
+                emptyOpt.textContent = `Create new instance of category: "${filterType}"`;
+            }
+
+            sel.appendChild(emptyOpt);
+
+            // Add blueprint options
+            for (const cand of state.blueprints.filter(tt => tt.type === field.blueprintTypeFilter && tt.type !== 'Root')) {
+                const o = document.createElement('option');
+                o.value = cand.id;
+                o.textContent = cand.name;
+                sel.appendChild(o);
+            }
+
+            // Attach onchange handler
+            sel.onchange = () => {
+                if (!sel.value) return;
+                pushUndo();
+                const newInst = createInstance(sel.value, parentInst.id, field.id);
+                if (newInst) editorCollapsed[newInst.id] = true;
+
+                const registryParent = state.instances[parentInst.id];
+
+                if (isList) {
+                    if (!Array.isArray(registryParent.fieldValues[field.id])) {
+                        registryParent.fieldValues[field.id] = [];
+                    }
+                    registryParent.fieldValues[field.id].push(newInst.id);
+                } else {
+                    registryParent.fieldValues[field.id] = newInst.id;
+                }
+
+                save();
+                renderAll();
+            };
+
+            return sel;
         }
 
         function cloneBlueprint(blueprintId) {
@@ -2551,21 +2666,21 @@
                 }
 
                 // Check if value exists for reference/instantiator fields but field kind changed
-                if (field.fieldKind === FIELD_KIND.PRIMITIVE && 
+                if (field.fieldKind === FIELD_KIND.PRIMITIVE &&
                     (typeof val === 'object' || (Array.isArray(val) && val.length > 0))) {
                     errors.push(`type_mismatch:${field.name} (has reference/list data but field is now primitive)`);
                 }
 
                 // Check type filter violations for reference/instantiator fields
                 if ((field.fieldKind === FIELD_KIND.INSTANTIATOR ||
-                     field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST ||
-                     field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE ||
-                     field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) &&
+                    field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST ||
+                    field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE ||
+                    field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST) &&
                     field.blueprintTypeFilter && val) {
-                    
+
                     // Get referenced instance IDs
                     let refIds = [];
-                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR || 
+                    if (field.fieldKind === FIELD_KIND.INSTANTIATOR ||
                         field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE) {
                         if (typeof val === 'string') refIds = [val];
                         else if (Array.isArray(val)) refIds = val; // Handle legacy array format
@@ -4591,38 +4706,18 @@
             }
 
             filterSel.onchange = () => {
-                const newFilter = filterSel.value;
-                const oldFilter = field.blueprintTypeFilter;
+                pushUndo();
+                field.blueprintTypeFilter = filterSel.value;
 
-                // Check if instances exist with data in this field
-                const instances = Object.values(state.instances).filter(inst => 
-                    inst.templateId === blueprint.id
-                );
-
-                const instancesUsingField = instances.filter(inst => {
-                    const val = inst.fieldValues[field.id];
-                    if (val === null || val === undefined || val === '') return false;
-                    if (Array.isArray(val) && val.length === 0) return false;
-                    return true;
-                });
-
-                // Warn if changing filter will break existing connections
-                if (instancesUsingField.length > 0 && oldFilter !== newFilter) {
-                    const message = 
-                        `⚠️ Warning: Type Filter Change\n\n` +
-                        `Changing "${field.name}" filter from "${oldFilter || '(none)'}" to "${newFilter}" ` +
-                        `may break ${instancesUsingField.length} existing instance(s).\n\n` +
-                        `Instances with incompatible references will show validation errors.\n\n` +
-                        `Continue?`;
-
-                    if (!confirm(message)) {
-                        filterSel.value = oldFilter || ''; // Cancel - revert dropdown
-                        return;
-                    }
+                // Also update allowedTemplateIds to match all blueprints of this type
+                if (filterSel.value) {
+                    field.allowedTemplateIds = state.blueprints
+                        .filter(bp => bp.type === filterSel.value)
+                        .map(bp => bp.id);
+                } else {
+                    field.allowedTemplateIds = [];
                 }
 
-                pushUndo();
-                field.blueprintTypeFilter = newFilter;
                 save();
                 renderAll();
             };
@@ -6067,18 +6162,18 @@
 
                                 const startX = e.clientX;
                                 const startWidth = currentWidth || resizeContainer.offsetWidth;
-                                
+
                                 // Get center panel's actual current width
                                 const centerPane = document.querySelector('.pane.center');
                                 const panelWidth = centerPane ? centerPane.offsetWidth : 360;
                                 const minFieldWidth = Math.max(200, panelWidth - 200); // Panel width minus padding/margins
-                                
+
                                 document.body.style.cursor = 'ew-resize';
 
                                 const onMouseMove = (e) => {
                                     if (!isResizing) return;
                                     const deltaX = e.clientX - startX;
-                                    
+
                                     const newWidth = Math.max(minFieldWidth, startWidth + deltaX);
                                     currentWidth = newWidth;
 
@@ -6119,12 +6214,12 @@
                                 const startY = e.clientY;
                                 const startWidth = currentWidth || resizeContainer.offsetWidth;
                                 const startHeight = currentHeight;
-                                
+
                                 // Get center panel's actual current width
                                 const centerPane = document.querySelector('.pane.center');
                                 const panelWidth = centerPane ? centerPane.offsetWidth : 360;
                                 const minFieldWidth = Math.max(200, panelWidth - 200);
-                                
+
                                 document.body.style.cursor = 'se-resize';
 
                                 const onMouseMove = (e) => {
@@ -6363,20 +6458,32 @@
                         if (ids.length === 0) {
                             // Add reference button
                             const addBtn = document.createElement('button');
-                            addBtn.className = 'btn small primary';
-                            addBtn.textContent = '🔗 Add Reference';
-                            addBtn.onclick = () => {
-                                // HARDENING: Pass current instance to exclude self and descendants
-                                showInstancePicker(f.allowedTemplateIds, (selectedId) => {
-                                    pushUndo();
-                                    if (!ids.includes(selectedId)) {
-                                        ids.push(selectedId);
-                                        inst.fieldValues[f.id] = ids;
-                                    }
-                                    save();
-                                    renderAll();
-                                }, inst.id);
-                            };
+
+                            const hasNoFilter = !f.blueprintTypeFilter || f.blueprintTypeFilter === null || f.blueprintTypeFilter === '';
+
+                            if (hasNoFilter) {
+                                addBtn.className = 'btn small';
+                                addBtn.textContent = '⚠️ No Type Filter - Set a filter from source blueprint';
+                                addBtn.disabled = true;
+                                addBtn.style.cssText = 'border: 1px solid var(--warning) !important; background: rgba(251, 191, 36, 0.08) !important; color: var(--warning) !important; cursor: not-allowed !important;';
+                                addBtn.title = 'Blueprint field has no type filter - edit blueprint to fix';
+                            } else {
+                                addBtn.className = 'btn small primary';
+                                addBtn.textContent = '🔗 Add Reference';
+                                addBtn.onclick = () => {
+                                    // HARDENING: Pass current instance to exclude self and descendants
+                                    showInstancePicker(f.allowedTemplateIds, (selectedId) => {
+                                        pushUndo();
+                                        if (!ids.includes(selectedId)) {
+                                            ids.push(selectedId);
+                                            inst.fieldValues[f.id] = ids;
+                                        }
+                                        save();
+                                        renderAll();
+                                    }, inst.id);
+                                };
+                            }
+
                             control.appendChild(addBtn);
                         }
                     }
@@ -6500,23 +6607,40 @@
 
                         control.appendChild(chipsOuterContainer);
 
+                        const hasTypeSelected =
+                            Array.isArray(f.blueprintTypeFilter) &&
+                            f.blueprintTypeFilter.length > 0;
+
+                        // Add reference button (with duplicate prevention)
                         // Add reference button (with duplicate prevention)
                         const addBtn = document.createElement('button');
-                        addBtn.className = 'btn small primary';
-                        addBtn.textContent = '🔗 Add Reference';
-                        addBtn.onclick = () => {
-                            showInstancePicker(f.blueprintTypeFilter, (selectedId) => {
-                                if (!ids.includes(selectedId)) {
-                                    pushUndo();
-                                    ids.push(selectedId);
-                                    inst.fieldValues[f.id] = ids;
-                                    save();
-                                    renderAll();
-                                } else {
-                                    alert('This reference already exists in the list.');
-                                }
-                            }, inst.id);
-                        };
+
+                        const hasNoFilter = !f.blueprintTypeFilter || f.blueprintTypeFilter === null || f.blueprintTypeFilter === '';
+
+                        if (hasNoFilter) {
+                            addBtn.className = 'btn small';
+                            addBtn.textContent = '⚠️ No Type Filter - Set a filter from source blueprint';
+                            addBtn.disabled = true;
+                            addBtn.style.cssText = 'border: 1px solid var(--warning) !important; background: rgba(251, 191, 36, 0.08) !important; color: var(--warning) !important; cursor: not-allowed !important;';
+                            addBtn.title = 'Blueprint field has no type filter - edit blueprint to fix';
+                        } else {
+                            addBtn.className = 'btn small primary';
+                            addBtn.textContent = '🔗 Add Reference';
+                            addBtn.onclick = () => {
+                                showInstancePicker(f.blueprintTypeFilter, (selectedId) => {
+                                    if (!ids.includes(selectedId)) {
+                                        pushUndo();
+                                        ids.push(selectedId);
+                                        inst.fieldValues[f.id] = ids;
+                                        save();
+                                        renderAll();
+                                    } else {
+                                        alert('This reference already exists in the list.');
+                                    }
+                                }, inst.id);
+                            };
+                        }
+
                         control.appendChild(addBtn);
                     }
                 } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR || f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
@@ -6720,67 +6844,7 @@
                             btnRow.appendChild(linkBtn);
                         }
 
-                        const sel = document.createElement('select');
-                        sel.classList.add('valueInputDark');
-
-                        const emptyOpt = document.createElement('option');
-                        emptyOpt.value = '';
-                        const filterType = f.blueprintTypeFilter;
-
-                        // Check filter validity
-                        const validTypes = new Set(
-                            state.blueprints
-                                .map(t => t.type)
-                                .filter(t => t && typeof t === 'string' && t.trim() !== '' && t !== 'Root')
-                        );
-
-                        const hasNoFilter = !filterType || filterType === null || filterType === '';
-                        const filterOrphaned = filterType && !validTypes.has(filterType);
-
-                        if (hasNoFilter) {
-                            emptyOpt.textContent = '⚠️ No type selected';
-                            emptyOpt.style.color = 'var(--warning)';
-                            sel.disabled = true;
-                            sel.style.cssText = 'border: 1px solid var(--warning) !important; background: rgba(251, 191, 36, 0.08) !important;';
-                            sel.title = 'Blueprint field has no type filter - edit blueprint to fix';
-                        } else if (filterOrphaned) {
-                            emptyOpt.textContent = `🔴 Category "${filterType}" not found`;
-                            emptyOpt.style.color = 'var(--danger)';
-                            sel.disabled = true;
-                            sel.style.cssText = 'border: 1px solid var(--danger) !important; background: rgba(255, 107, 107, 0.08) !important;';
-                            sel.title = `Blueprint type "${filterType}" no longer exists - edit blueprint to fix`;
-                        } else {
-                            emptyOpt.textContent = `Create new instance of category: "${filterType}"`;
-                        }
-
-                        sel.appendChild(emptyOpt);
-                        for (const cand of state.blueprints.filter(tt => tt.type === f.blueprintTypeFilter && tt.type !== 'Root')) {
-                            const o = document.createElement('option');
-                            o.value = cand.id;
-                            o.textContent = cand.name;
-                            sel.appendChild(o);
-                        }
-                        sel.onchange = () => {
-                            if (!sel.value) return;
-                            pushUndo();
-                            const newInst = createInstance(sel.value, inst.id, f.id);
-                            if (newInst) editorCollapsed[newInst.id] = true;
-                            // HARDENING: Always modify registry instance, not embedded copy
-                            const registryParent = state.instances[inst.id];
-
-                            // FIXED: Both contain and reference mode now store IDs
-                            if (f.fieldKind === FIELD_KIND.INSTANTIATOR) {
-                                registryParent.fieldValues[f.id] = newInst.id;
-                            } else {
-                                if (!Array.isArray(registryParent.fieldValues[f.id])) {
-                                    registryParent.fieldValues[f.id] = [];
-                                }
-                                registryParent.fieldValues[f.id].push(newInst.id);
-                            }
-
-                            save();
-                            renderAll();
-                        };
+                        const sel = createTypeFilterDropdown(f, inst, false);
                         btnRow.appendChild(sel);
                         control.appendChild(btnRow);
                     } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
@@ -6808,66 +6872,7 @@
                         };
                         addRow.appendChild(moveBtn);
 
-                        const addSel = document.createElement('select');
-                        addSel.classList.add('valueInputDark');
-                        const emptyOpt = document.createElement('option');
-                        emptyOpt.value = '';
-                        const filterType = f.blueprintTypeFilter;
-
-                        // Check filter validity
-                        const validTypes = new Set(
-                            state.blueprints
-                                .map(t => t.type)
-                                .filter(t => t && typeof t === 'string' && t.trim() !== '' && t !== 'Root')
-                        );
-
-                        const hasNoFilter = !filterType || filterType === null || filterType === '';
-                        const filterOrphaned = filterType && !validTypes.has(filterType);
-
-                        if (hasNoFilter) {
-                            emptyOpt.textContent = '⚠️ No type selected';
-                            emptyOpt.style.color = 'var(--warning)';
-                            addSel.disabled = true;
-                            addSel.style.cssText = 'border: 1px solid var(--warning) !important; background: rgba(251, 191, 36, 0.08) !important;';
-                            addSel.title = 'Blueprint field has no type filter - edit blueprint to fix';
-                        } else if (filterOrphaned) {
-                            emptyOpt.textContent = `🔴 Category "${filterType}" not found`;
-                            emptyOpt.style.color = 'var(--danger)';
-                            addSel.disabled = true;
-                            addSel.style.cssText = 'border: 1px solid var(--danger) !important; background: rgba(255, 107, 107, 0.08) !important;';
-                            addSel.title = `Blueprint type "${filterType}" no longer exists - edit blueprint to fix`;
-                        } else {
-                            emptyOpt.textContent = `Create new instance of category: "${filterType}"`;
-                        }
-
-                        addSel.appendChild(emptyOpt);
-                        for (const cand of state.blueprints.filter(tt => tt.type === f.blueprintTypeFilter && tt.type !== 'Root')) {
-                            const o = document.createElement('option');
-                            o.value = cand.id;
-                            o.textContent = cand.name;
-                            addSel.appendChild(o);
-                        }
-                        addSel.onchange = () => {
-                            if (!addSel.value) return;
-                            pushUndo();
-                            const ni = createInstance(addSel.value, inst.id, f.id);
-                            if (ni) {
-                                editorCollapsed[ni.id] = true;
-
-                                // HARDENING: Always modify registry instance, not embedded copy
-                                const registryParent = state.instances[inst.id];
-
-                                // HARDENING: Initialize field as array if missing or invalid
-                                if (!Array.isArray(registryParent.fieldValues[f.id])) {
-                                    registryParent.fieldValues[f.id] = [];
-                                }
-
-                                // Push new instance ID
-                                registryParent.fieldValues[f.id].push(ni.id);
-                            }
-                            save();
-                            renderAll();
-                        };
+                        const addSel = createTypeFilterDropdown(f, inst, true);
                         addRow.appendChild(addSel);
                         control.appendChild(addRow);
                     }
@@ -7225,6 +7230,27 @@
             initResizablePanels();
 
             const ok = load();
+
+            for (const blueprint of state.blueprints) {
+                for (const field of blueprint.fields) {
+                    if ((field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE ||
+                        field.fieldKind === FIELD_KIND.INSTANCE_REFERENCE_LIST ||
+                        field.fieldKind === FIELD_KIND.INSTANTIATOR ||
+                        field.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) &&
+                        field.blueprintTypeFilter &&
+                        (!field.allowedTemplateIds || field.allowedTemplateIds.length === 0)) {
+
+                        // Populate allowedTemplateIds from type filter
+                        field.allowedTemplateIds = state.blueprints
+                            .filter(bp => bp.type === field.blueprintTypeFilter)
+                            .map(bp => bp.id);
+
+                        console.log(`Migrated field ${field.name}: type "${field.blueprintTypeFilter}" → ${field.allowedTemplateIds.length} blueprints`);
+                    }
+                }
+            }
+            save();
+
             if (!ok) {
                 console.log('No saved state, initializing sample data...');
                 initSampleIfEmpty();
