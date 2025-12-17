@@ -1347,10 +1347,14 @@
             <div class="pane left">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                     <div class="title" style="margin-bottom:0">Instance Hierarchy</div>
-                    <label style="display:flex;align-items:center;gap:4px;margin:0;font-size:11px">
-                        <input type="checkbox" id="verboseToggle" style="width:auto">
-                        <span class="muted">Verbose</span>
-                    </label>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <label style="display:flex;align-items:center;gap:4px;margin:0;font-size:11px">
+                            <input type="checkbox" id="verboseToggle" style="width:auto">
+                            <span class="muted">Verbose</span>
+                        </label>
+                        <button id="refreshVerboseBtn" class="btn small"
+                            style="font-size:11px;padding:2px 6px;display:none" title="Refresh verbose view">🔄</button>
+                    </div>
                 </div>
 
                 <!-- SCROLL CONTAINER -->
@@ -4008,6 +4012,28 @@
             forwardBtn: document.getElementById('forwardBtn')
         };
 
+        // Cache refresh button
+        const refreshVerboseBtn = document.getElementById('refreshVerboseBtn');
+
+        // Verbose toggle handler
+        el.verboseToggle.onchange = () => {
+            verboseMode = el.verboseToggle.checked;
+            
+            // Show/hide refresh button
+            if (refreshVerboseBtn) {
+                refreshVerboseBtn.style.display = verboseMode ? 'block' : 'none';
+            }
+            
+            renderAll();
+        };
+
+        // Refresh button handler
+        if (refreshVerboseBtn) {
+            refreshVerboseBtn.onclick = () => {
+                renderAll();
+            };
+        }
+
         /**
          * Smart instance label used throughout the UI.
          * Accepts either an instance object or an instance ID string.
@@ -4890,14 +4916,14 @@
             wrap.appendChild(nameLabel);
             wrap.appendChild(nameInput);
             wrap.appendChild(typeLabel);
-            
+
             // Create container for type select + badge
             const typeRow = document.createElement('div');
             typeRow.style.display = 'flex';
             typeRow.style.alignItems = 'center';
             typeRow.style.gap = '8px';
             typeRow.appendChild(typeSelect);
-            
+
             // Add instance count badge if instances exist
             if (instances.length > 0) {
                 const instanceBadge = document.createElement('span');
@@ -4906,7 +4932,7 @@
                 instanceBadge.title = `${instances.length} instance(s) use this blueprint\nType is locked and cannot be changed`;
                 typeRow.appendChild(instanceBadge);
             }
-            
+
             wrap.appendChild(typeRow);
 
             // ============================================================================
@@ -6555,6 +6581,13 @@
                             const twisty = createReferenceTwisty(refId, refStatus, inst, f);
                             chip.appendChild(twisty);
 
+                            // Drag handle
+                            const dragHandle = document.createElement('span');
+                            dragHandle.textContent = '⋮⋮';
+                            dragHandle.style.cssText = 'cursor: grab; opacity: 0.4; margin-right: 4px; user-select: none;';
+                            dragHandle.title = 'Drag to reorder';
+                            chip.appendChild(dragHandle);
+
                             const chipContent = document.createElement('span');
                             const chipLabel = getInstanceLabel(refId);
                             chipContent.textContent = `${chipIndex + 1}. ${chipLabel}${refStatus.labelSuffix}`;
@@ -6621,6 +6654,58 @@
                                 const expandedView = renderChipExpandedView(target, targetBlueprint, refId);
                                 chipContainer.appendChild(expandedView);
                             }
+
+
+
+                            // Make chip draggable
+                            chip.draggable = true;
+                            chip.ondragstart = (e) => {
+                                e.dataTransfer.effectAllowed = 'move';
+                                e.dataTransfer.setData('text/plain', JSON.stringify({
+                                    type: 'reference-reorder',
+                                    instanceId: inst.id,
+                                    fieldId: f.id,
+                                    refId: refId,
+                                    sourceIndex: chipIndex
+                                }));
+                                chip.style.opacity = '0.5';
+                            };
+
+                            chip.ondragend = () => {
+                                chip.style.opacity = '1';
+                            };
+
+                            chip.ondragover = (e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = 'move';
+                            };
+
+                            chip.ondrop = (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                                if (data.type === 'reference-reorder' &&
+                                    data.instanceId === inst.id &&
+                                    data.fieldId === f.id) {
+
+                                    const sourceIndex = data.sourceIndex;
+                                    const targetIndex = chipIndex;
+
+                                    if (sourceIndex !== targetIndex) {
+                                        pushUndo();
+
+                                        // Reorder array
+                                        const newIds = [...ids];
+                                        const [removed] = newIds.splice(sourceIndex, 1);
+                                        newIds.splice(targetIndex, 0, removed);
+
+                                        inst.fieldValues[f.id] = newIds;
+                                        save();
+                                        renderAll();
+                                    }
+                                }
+                            };
 
                             chipsOuterContainer.appendChild(chipContainer);
                         }
