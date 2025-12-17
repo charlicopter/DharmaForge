@@ -4890,7 +4890,27 @@
             wrap.appendChild(nameLabel);
             wrap.appendChild(nameInput);
             wrap.appendChild(typeLabel);
-            wrap.appendChild(typeSelect);
+            
+            // Create container for type select + badge
+            const typeRow = document.createElement('div');
+            typeRow.style.display = 'flex';
+            typeRow.style.alignItems = 'center';
+            typeRow.style.gap = '8px';
+            typeRow.appendChild(typeSelect);
+            
+            // Add instance count badge if instances exist
+            if (instances.length > 0) {
+                const instanceBadge = document.createElement('span');
+                instanceBadge.style.cssText = 'padding: 4px 10px; font-size: 11px; font-weight: 600; color: rgba(168, 85, 247, 0.9); background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 4px; white-space: nowrap;';
+                instanceBadge.textContent = `🟣 ${instances.length} instance${instances.length === 1 ? '' : 's'}`;
+                instanceBadge.title = `${instances.length} instance(s) use this blueprint\nType is locked and cannot be changed`;
+                typeRow.appendChild(instanceBadge);
+            }
+            
+            wrap.appendChild(typeRow);
+
+            // ============================================================================
+            // STATIC BLUEPRINT DEFAULTS SECTION
 
             // ============================================================================
             // STATIC BLUEPRINT DEFAULTS SECTION
@@ -6844,7 +6864,7 @@
                             btnRow.appendChild(linkBtn);
                         }
 
-                        const sel = createTypeFilterDropdown(f, inst, false);
+                        const sel = createTypeFilterDropdown(f, inst, f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST);
                         btnRow.appendChild(sel);
                         control.appendChild(btnRow);
                     } else if (f.fieldKind === FIELD_KIND.INSTANTIATOR_LIST) {
